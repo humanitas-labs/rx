@@ -6,6 +6,9 @@
 .journal/
 .tasks/
 
+# Local design-frame exports may contain personal names (v0-scope §6.3)
+docs/design/*.png
+
 node_modules/
 dist/
 out/
