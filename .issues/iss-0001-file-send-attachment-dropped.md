@@ -19,7 +19,7 @@ directories. Text send through the same interface works and verifies.
 Evidence: [platform spike findings — spike 3b](../docs/findings/platform-spike.md).
 
 Impact: the v0 scope item "send one or more file attachments"
-(docs/v0-scope.md §4.4) has no working supported transport. rx's
+(docs/spec/v0.md §4.4) has no working supported transport. rx's
 verification model correctly reports these sends as failed rather than
 falsely confirmed.
 

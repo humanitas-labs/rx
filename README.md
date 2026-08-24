@@ -67,7 +67,7 @@ rx stores only its own workflow metadata, such as whether a conversation is
 archived or snoozed and when it should return. Message bodies and attachments
 remain in Apple’s storage.
 
-See the [v0 scope](docs/v0-scope.md) and
+See the [v0 scope](docs/spec/v0.md) and
 [architecture decision](docs/decisions/002-electron-architecture.md) for the
 current product and technical boundaries.
 
