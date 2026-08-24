@@ -125,7 +125,8 @@ Reproducible platform experiments live under
 commit message content, contact handles, or chat identifiers.
 
 The full implementation sequence is documented in the
-[v0 implementation plan](.plan/v0.md).
+[v0 implementation plan](.plan/v0.md). Known issues are tracked in the
+[issue index](.issues/index.md).
 The current interface source is listed in the
 [design index](docs/design/index.md).
 
