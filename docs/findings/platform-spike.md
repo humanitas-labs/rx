@@ -122,6 +122,35 @@ Two licensing/architecture facts discovered:
    reimplement that walk on crabstep's public API, vendor the module, or
    upstream a visibility change. Plain-text extraction needs none of that.
 
+## Spike 5b — decoder as WASM with structured output (PASS, Node-side)
+
+Built `decoder-wasm/`: crabstep-only Rust crate compiled to
+`wasm32-unknown-unknown`, 60KB module, instantiated with **zero imports**
+(no WASI, no host functions — sandboxing is structural). ABI: bytes in,
+length-prefixed JSON out: `{ ok: { text, spans } } | { err }`, span offsets
+in UTF-16 code units (JavaScript string indexing; also Apple's native range
+encoding, so no byte mapping exists anywhere).
+
+- Same 97-payload corpus: 97 ok, 0 errors, 0 text mismatches against the
+  native addon.
+- 8 corpus messages carry spans; link span verified with URL value and
+  correct offsets. Kinds implemented: link, mention, bold, italic,
+  underline/strikethrough as `other`.
+- Batch: 6.1ms WASM vs 0.19ms native (~30×). At 0.06ms per message the
+  penalty is irrelevant.
+- Malformed inputs (empty, garbage, 4KB of 0xFF) return typed
+  `{"err": …}` — no traps, no crashes.
+- `imessage-database` cannot be the WASM dependency (links rusqlite); the
+  crate reimplements the attributed range walk on crabstep's public API
+  (~60 lines). crabstep is GPL-3.0 either way — WASM changes the artifact
+  format, not the license.
+
+Decision recorded in [ADR-003](../decisions/003-wasm-decoder-boundary.md):
+WASM is the default decoder boundary; the Node-API addon is the fallback.
+Remaining criterion — instantiation under the packaged signed Electron app —
+folds into spike 4 and is low-risk since no native module loading is
+involved.
+
 ## Spike 6 — Contacts framework from packaged Electron (PENDING)
 
 Requires the packaged app from spike 4 (Contacts TCC prompt is granted per

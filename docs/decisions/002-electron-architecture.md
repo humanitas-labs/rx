@@ -6,6 +6,8 @@ Last updated: `2026.08.24`
 
 **Supersedes:** [ADR-001](001-application-architecture.md)
 
+**Revised by:** [ADR-003](003-wasm-decoder-boundary.md) (decoder boundary: WASM default, Node-API fallback)
+
 > Build rx as an Electron application with a TypeScript main process, a narrow
 > preload contract, and a React renderer. Keep rx’s product logic in TypeScript
 > and isolate Apple-specific decoding and Contacts access behind small,
