@@ -1,4 +1,4 @@
-# RX Design Sources
+# rx Design Sources
 
 Last updated: `2026.08.24`
 

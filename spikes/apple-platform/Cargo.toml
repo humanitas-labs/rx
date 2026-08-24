@@ -4,7 +4,7 @@ version = "0.0.0"
 edition = "2021"
 publish = false
 
-# Throwaway spike code for RX plan step 2. Not part of the application.
+# Throwaway spike code for rx plan step 2. Not part of the application.
 # imessage-database is GPL-3.0; spike-only usage here, licensing decision
 # for the shipped app is tracked in ADR-002.
 

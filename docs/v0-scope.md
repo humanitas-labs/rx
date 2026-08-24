@@ -1,10 +1,10 @@
-# RX v0 Scope
+# rx v0 Scope
 
 Last updated: `2026.08.24`
 
-> RX v0 is a daily-driver macOS client for Apple Messages with a local inbox
+> rx v0 is a daily-driver macOS client for Apple Messages with a local inbox
 > workflow. The release succeeds when ordinary Messages conversations can be
-> read, answered, archived, and snoozed from RX for a full working day.
+> read, answered, archived, and snoozed from rx for a full working day.
 
 ## Table of Contents
 
@@ -21,17 +21,17 @@ Last updated: `2026.08.24`
 
 ## 1. Product judgment
 
-RX should first become a better way to operate Apple Messages. It should not
+rx should first become a better way to operate Apple Messages. It should not
 begin as a unified inbox.
 
 The differentiating behavior is conversation triage, not protocol coverage.
-Apple supplies the communication network and canonical history. RX supplies a
+Apple supplies the communication network and canonical history. rx supplies a
 local control layer that lets the user finish a conversation, defer it, and
 trust that it will return when something changes.
 
 The v0 product contract is behavioral. Low-level code from `imsg`, Cyborg, or
 another project may be reused after it fits this contract. None of those
-projects defines the RX architecture.
+projects defines the rx architecture.
 
 ## 2. User and job
 
@@ -57,7 +57,7 @@ new or resurfaced conversation
 
 ### 3.1 Conversation states
 
-Each Apple conversation has exactly one current RX workflow state:
+Each Apple conversation has exactly one current rx workflow state:
 
 | State | Visible in | Entry | Exit |
 |---|---|---|---|
@@ -65,27 +65,27 @@ Each Apple conversation has exactly one current RX workflow state:
 | `archived` | Archive | User archives | Manual restore or new inbound message |
 | `snoozed` | Snoozed | User chooses a future wake time | Wake time, manual restore, or new inbound message |
 
-These are RX states. They do not alter the conversation in Messages.app.
+These are rx states. They do not alter the conversation in Messages.app.
 
 ### 3.2 Archive semantics
 
 Archive means “handled until the other side says something new.”
 
-When the user archives a conversation, RX records the latest inbound message
+When the user archives a conversation, rx records the latest inbound message
 known at that moment. The conversation remains archived across refresh and
-restart. It returns to the inbox when a later inbound message appears or RX
+restart. It returns to the inbox when a later inbound message appears or rx
 verifies a new outbound message sent from that conversation.
 
 ### 3.3 Snooze semantics
 
 Snooze means “hide until this time unless the other side responds first.”
 
-RX records the wake time and latest inbound message known when the snooze was
+rx records the wake time and latest inbound message known when the snooze was
 created. The conversation returns to the inbox when:
 
 - the wake time is reached;
 - a later inbound message appears; or
-- RX verifies a new outbound message sent from that conversation; or
+- rx verifies a new outbound message sent from that conversation; or
 - the user restores it manually.
 
 Re-snoozing replaces the prior wake time. Wake processing runs on launch and
@@ -93,8 +93,8 @@ while the application is open.
 
 ### 3.4 Read semantics
 
-RX maintains its own seen watermark per conversation. Opening a conversation
-marks messages through the current latest message as seen in RX.
+rx maintains its own seen watermark per conversation. Opening a conversation
+marks messages through the current latest message as seen in rx.
 
 v0 does not promise to change the unread badge or read receipts in
 Messages.app. Apple exposes delivery through its scripting interface but does
@@ -103,12 +103,12 @@ improve this behavior, but the product must remain correct without it.
 
 ### 3.5 Source changes
 
-RX treats active conversation content as more important than prior triage
+rx treats active conversation content as more important than prior triage
 state. A new inbound message or verified outbound send resurfaces an archived
 or snoozed conversation. Reactions and edits update the rendered thread but do
 not resurface it by themselves in v0.
 
-If a source conversation disappears, RX removes it from active views and keeps
+If a source conversation disappears, rx removes it from active views and keeps
 no independent copy of its content.
 
 ### 3.6 Spaces
@@ -156,7 +156,7 @@ All
   rename, and reorder Spaces; move a conversation between Spaces from its row
   and from the open conversation.
 - Conversation rows with participant or group name, avatar or initials,
-  latest-message preview, timestamp, and RX unread state.
+  latest-message preview, timestamp, and rx unread state.
 - Stable ordering by latest relevant activity in Inbox and Archive; soonest wake
   first in Snoozed.
 - Search across conversation names and decoded message text, defaulting to the
@@ -202,7 +202,7 @@ Existing groups are supported. Creating or editing a group is not.
 - Incremental detection of new message rows while the app is open.
 - Refresh affected conversation summaries without reloading every thread.
 - Recover from temporary database locks or Messages.app restarts.
-- Catch up from the last observed source watermark on RX launch.
+- Catch up from the last observed source watermark on rx launch.
 
 Local notifications are a stretch within v0. They ship only if duplicate
 notification behavior with Messages.app can be made understandable during
@@ -218,20 +218,20 @@ dogfood.
 - transport, delivery, and failure state; and
 - source unread and read-receipt state.
 
-RX opens Apple databases read-only. It does not modify `chat.db`, the Address
+rx opens Apple databases read-only. It does not modify `chat.db`, the Address
 Book, or their WAL files.
 
-### 5.2 RX-owned data
+### 5.2 rx-owned data
 
 - Spaces and each conversation's Space assignment;
 - workflow state: inbox, archived, snoozed;
 - archive and snooze source watermarks;
 - snooze wake time;
-- RX seen watermark;
+- rx seen watermark;
 - UI preferences and permission acknowledgements; and
 - delivery attempts awaiting source verification.
 
-RX stores source identifiers and workflow metadata. It does not create a second
+rx stores source identifiers and workflow metadata. It does not create a second
 durable copy of message bodies or attachments in v0.
 
 ### 5.3 Extension boundary
@@ -255,14 +255,14 @@ The v0 is complete when all of these pass on a clean install:
 3. Opening a conversation renders its latest 50 messages without blocking the
    rest of the UI.
 4. A text sent to an existing conversation is verified in Apple’s source data.
-5. A file attachment sent from RX is verified in the intended conversation.
+5. A file attachment sent from rx is verified in the intended conversation.
 6. Archive survives restart and resurfaces only after a later inbound message.
 7. Snooze survives restart, wakes within one minute of its deadline, and
    resurfaces early on a later inbound message.
 8. Search finds text stored in Apple’s attributed-body representation.
 9. Existing one-to-one and group conversations remain usable when Messages.app
    is not frontmost.
-10. RX never opens an Apple-owned database with write access.
+10. rx never opens an Apple-owned database with write access.
 11. A verified send from Archive or Snoozed restores the conversation to Inbox;
     a failed send does not.
 12. Spaces can be created, renamed, and reordered; a conversation moved
@@ -272,7 +272,7 @@ The v0 is complete when all of these pass on a clean install:
 
 ### 6.2 Operational acceptance
 
-Use RX as the primary Apple Messages surface for one full working day. The test
+Use rx as the primary Apple Messages surface for one full working day. The test
 fails on any missed actionable inbound message, incorrect recipient, false send
 confirmation, lost triage state, or need to maintain a parallel reminder.
 
@@ -293,7 +293,7 @@ confirmation, lost triage state, or need to maintain a parallel reminder.
 - Group creation, membership changes, or group naming.
 - Deleting messages or conversations in Messages.app.
 - Sending tapbacks, editing sent messages, or unsending.
-- Synchronizing RX archive or snooze state across Macs.
+- Synchronizing rx archive or snooze state across Macs.
 - General identity resolution beyond Apple conversation participants and local
   Contacts.
 - CRM records, relationship scoring, AI summaries, autonomous drafting, or

@@ -1,15 +1,15 @@
-# RX
+# rx
 
-RX is a local-first Apple Messages client for macOS, built around inbox zero.
+rx is a local-first Apple Messages client for macOS, built around inbox zero.
 
 Ordinary message lists mix conversations that need a reply with conversations
-that are already handled. RX adds a simple workflow on top of the Messages data
+that are already handled. rx adds a simple workflow on top of the Messages data
 already stored on your Mac: reply, archive, or snooze a conversation and trust
 that it will return when it matters again.
 
-RX is in pre-alpha development. It is not ready for general use.
+rx is in pre-alpha development. It is not ready for general use.
 
-## What RX does
+## What rx does
 
 The first release is designed to provide:
 
@@ -23,7 +23,7 @@ The first release is designed to provide:
 - search across conversation names and decoded message text; and
 - keyboard-first and pointer-based operation.
 
-Archive and snooze are RX features. They do not delete or hide the conversation
+Archive and snooze are rx features. They do not delete or hide the conversation
 inside Messages.app.
 
 Spaces partition conversations by context:
@@ -41,7 +41,7 @@ Spaces never loses archive, snooze, or unread state.
 
 ## How it works
 
-RX treats Apple Messages as the communication system and adds its own workflow
+rx treats Apple Messages as the communication system and adds its own workflow
 state alongside it.
 
 ```text
@@ -51,19 +51,19 @@ Apple Messages database (read-only)
         ├── conversation reader
         ├── source-change observer
         ├── delivery through Messages.app
-        └── RX workflow database
+        └── rx workflow database
                 ↓
         isolated preload API
                 ↓
            React renderer
 ```
 
-RX reads `~/Library/Messages/chat.db` without modifying it. Outbound messages
+rx reads `~/Library/Messages/chat.db` without modifying it. Outbound messages
 are sent through Messages.app rather than written into the database. A send is
 reported as successful only after the resulting outgoing record appears in the
 intended conversation.
 
-RX stores only its own workflow metadata, such as whether a conversation is
+rx stores only its own workflow metadata, such as whether a conversation is
 archived or snoozed and when it should return. Message bodies and attachments
 remain in Apple’s storage.
 
@@ -73,7 +73,7 @@ current product and technical boundaries.
 
 ## Privacy and permissions
 
-RX is local-only. It does not operate a message server or upload conversation
+rx is local-only. It does not operate a message server or upload conversation
 history.
 
 The application will require:
@@ -84,7 +84,7 @@ The application will require:
 The renderer does not receive filesystem, database, shell, or raw Electron IPC
 access. Apple-owned databases are opened read-only.
 
-RX maintains its own seen state in v0. Opening a conversation in RX may not
+rx maintains its own seen state in v0. Opening a conversation in rx may not
 clear the unread badge or send a read receipt in Messages.app.
 
 ## Current status
@@ -110,7 +110,7 @@ The evidence and open risks are recorded in the
 - no new group creation or membership editing;
 - no reaction sending, sent-message editing, or unsend;
 - no deletion of Apple messages or conversations;
-- no synchronization of RX archive or snooze state between Macs; and
+- no synchronization of rx archive or snooze state between Macs; and
 - direct distribution rather than the Mac App Store.
 
 ## Development

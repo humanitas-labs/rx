@@ -7,7 +7,7 @@ Status: spikes 1–3 executed; spikes 4–6 pending.
 Environment: macOS 26.5.1 (25F80), Messages.app iMessage account active,
 terminal granted Full Disk Access and Messages Automation permission.
 Spike code: [`spikes/apple-platform/`](../../spikes/apple-platform/). All
-spike output is statistics and RX-generated test messages only; no personal
+spike output is statistics and rx-generated test messages only; no personal
 content was printed or stored.
 
 ## Spike 1 — read-only open and decode (PASS)
