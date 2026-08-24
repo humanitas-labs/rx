@@ -1,0 +1,24 @@
+[package]
+name = "apple-platform-spike"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+# Throwaway spike code for RX plan step 2. Not part of the application.
+# imessage-database is GPL-3.0; spike-only usage here, licensing decision
+# for the shipped app is tracked in ADR-002.
+
+[dependencies]
+imessage-database = "4.2.0"
+rusqlite = "0.40"
+
+[[bin]]
+name = "spike1-read-decode"
+path = "src/bin/spike1_read_decode.rs"
+
+[[bin]]
+name = "spike2-observe"
+path = "src/bin/spike2_observe.rs"
+[[bin]]
+name = "spike-decode-rowid"
+path = "src/bin/spike_decode_rowid.rs"
