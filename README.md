@@ -14,6 +14,8 @@ RX is in pre-alpha development. It is not ready for general use.
 The first release is designed to provide:
 
 - Inbox, Snoozed, and Archive views for Apple Messages conversations;
+- Spaces — user-defined contexts such as Personal and Business, each with its
+  own Inbox, Snoozed, and Archive, plus an aggregate All view;
 - local archive and snooze state that survives restart;
 - automatic resurfacing when a new message arrives;
 - reading of text, attachments, reactions, replies, edits, and group events;
@@ -23,6 +25,19 @@ The first release is designed to provide:
 
 Archive and snooze are RX features. They do not delete or hide the conversation
 inside Messages.app.
+
+Spaces partition conversations by context:
+
+```text
+All
+├── Personal
+├── Business
+└── Unassigned
+```
+
+Each conversation belongs to exactly one Space; unassigned conversations live
+in Unassigned. Triage state stays with the conversation, so moving it between
+Spaces never loses archive, snooze, or unread state.
 
 ## How it works
 

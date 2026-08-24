@@ -111,6 +111,33 @@ not resurface it by themselves in v0.
 If a source conversation disappears, RX removes it from active views and keeps
 no independent copy of its content.
 
+### 3.6 Spaces
+
+A Space is a user-defined context (for example Personal or Business) that
+partitions conversations. Spaces are core to the product, not a later
+organizational layer.
+
+```text
+All
+├── Personal
+├── Business
+└── Unassigned
+```
+
+- Each conversation belongs to exactly one Space. Membership is single-primary;
+  many-to-many organization is deferred to a future tags feature.
+- Spaces are user-created, renameable, and reorderable.
+- Conversations with no assignment appear in `Unassigned`. New conversations
+  enter `Unassigned`.
+- Each Space presents its own Inbox, Snoozed, and Archive views. `All` is the
+  aggregate view across every Space, not a Space itself.
+- Workflow state attaches to the conversation, not the Space. Archive, snooze,
+  unread, and wake state survive a Space move; moving a conversation changes
+  only its Space.
+- A new inbound message resurfaces the conversation into the inbox of its
+  assigned Space.
+- Search defaults to the selected Space; `All` is the explicit broader search.
+
 ## 4. Functional scope
 
 ### 4.1 Onboarding
@@ -123,12 +150,17 @@ no independent copy of its content.
 
 ### 4.2 Inbox and navigation
 
-- Inbox, Snoozed, and Archive views.
+- Inbox, Snoozed, and Archive views, scoped to the selected Space, plus the
+  `All` aggregate.
+- A Space switcher covering `All`, user Spaces, and `Unassigned`; create,
+  rename, and reorder Spaces; move a conversation between Spaces from its row
+  and from the open conversation.
 - Conversation rows with participant or group name, avatar or initials,
   latest-message preview, timestamp, and RX unread state.
 - Stable ordering by latest relevant activity in Inbox and Archive; soonest wake
   first in Snoozed.
-- Search across conversation names and decoded message text.
+- Search across conversation names and decoded message text, defaulting to the
+  selected Space with `All` as the explicit broader scope.
 - Keyboard and pointer operation according to the approved designs.
 - Empty, loading, permission, and source-unavailable states.
 
@@ -191,6 +223,7 @@ Book, or their WAL files.
 
 ### 5.2 RX-owned data
 
+- Spaces and each conversation's Space assignment;
 - workflow state: inbox, archived, snoozed;
 - archive and snooze source watermarks;
 - snooze wake time;
@@ -232,6 +265,10 @@ The v0 is complete when all of these pass on a clean install:
 10. RX never opens an Apple-owned database with write access.
 11. A verified send from Archive or Snoozed restores the conversation to Inbox;
     a failed send does not.
+12. Spaces can be created, renamed, and reordered; a conversation moved
+    between Spaces keeps its archive, snooze, unread, and wake state; new and
+    unassigned conversations appear in `Unassigned`; `All` aggregates every
+    Space correctly.
 
 ### 6.2 Operational acceptance
 
