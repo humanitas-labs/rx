@@ -1,7 +1,7 @@
 ---
 id: iss-0001
 title: "File send via Messages.app scripting silently drops the attachment"
-status: proposed
+status: done
 priority: high
 labels: [platform, delivery, v0-scope-risk]
 ---
@@ -31,4 +31,5 @@ Candidate resolutions:
    unaffected.
 3. UI automation — excluded by scope (no Accessibility-driven automation).
 
-Decision owner: user.
+Decision: descoped from v0 (2026.08.24). Receiving and rendering attachments
+stays in scope; file sending returns when a supported transport exists.

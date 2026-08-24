@@ -176,7 +176,6 @@ All
 ### 4.4 Compose and delivery
 
 - Send text to an existing one-to-one or group conversation.
-- Send one or more file attachments.
 - Start a one-to-one conversation from a local contact, phone number, or email.
 - Show pending, verified-sent, and failed delivery states.
 - Preserve draft text while the conversation remains open.
@@ -255,17 +254,16 @@ The v0 is complete when all of these pass on a clean install:
 3. Opening a conversation renders its latest 50 messages without blocking the
    rest of the UI.
 4. A text sent to an existing conversation is verified in Apple’s source data.
-5. A file attachment sent from rx is verified in the intended conversation.
-6. Archive survives restart and resurfaces only after a later inbound message.
-7. Snooze survives restart, wakes within one minute of its deadline, and
+5. Archive survives restart and resurfaces only after a later inbound message.
+6. Snooze survives restart, wakes within one minute of its deadline, and
    resurfaces early on a later inbound message.
-8. Search finds text stored in Apple’s attributed-body representation.
-9. Existing one-to-one and group conversations remain usable when Messages.app
+7. Search finds text stored in Apple’s attributed-body representation.
+8. Existing one-to-one and group conversations remain usable when Messages.app
    is not frontmost.
-10. rx never opens an Apple-owned database with write access.
-11. A verified send from Archive or Snoozed restores the conversation to Inbox;
+9. rx never opens an Apple-owned database with write access.
+10. A verified send from Archive or Snoozed restores the conversation to Inbox;
     a failed send does not.
-12. Spaces can be created, renamed, and reordered; a conversation moved
+11. Spaces can be created, renamed, and reordered; a conversation moved
     between Spaces keeps its archive, snooze, unread, and wake state; new and
     unassigned conversations appear in `Unassigned`; `All` aggregates every
     Space correctly.
@@ -293,6 +291,9 @@ confirmation, lost triage state, or need to maintain a parallel reminder.
 - Group creation, membership changes, or group naming.
 - Deleting messages or conversations in Messages.app.
 - Sending tapbacks, editing sent messages, or unsending.
+- Sending file attachments: the supported scripting interface silently drops
+  them on current macOS ([iss-0001](../.issues/iss-0001-file-send-attachment-dropped.md)).
+  Receiving and rendering attachments stays in scope.
 - Synchronizing rx archive or snooze state across Macs.
 - General identity resolution beyond Apple conversation participants and local
   Contacts.

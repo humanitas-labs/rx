@@ -19,7 +19,7 @@ The first release is designed to provide:
 - local archive and snooze state that survives restart;
 - automatic resurfacing when a new message arrives;
 - reading of text, attachments, reactions, replies, edits, and group events;
-- text and file sending through Messages.app with delivery verification;
+- text sending through Messages.app with delivery verification;
 - search across conversation names and decoded message text; and
 - keyboard-first and pointer-based operation.
 
@@ -97,8 +97,8 @@ that:
   entire message database;
 - text messages can be sent through Messages.app and verified against the
   resulting source record; and
-- attachment sending requires further investigation across AppleScript target
-  and file-coercion variants.
+- attachment sending through the scripting interface silently drops the file
+  on current macOS; it is descoped from v0 (issue #2).
 
 The evidence and open risks are recorded in the
 [platform spike findings](docs/findings/platform-spike.md).
@@ -108,6 +108,8 @@ The evidence and open risks are recorded in the
 - macOS only;
 - Apple Messages only;
 - no new group creation or membership editing;
+- no file-attachment sending (silently broken in Apple's scripting interface
+  on current macOS — see issue #2); attachments are still received and shown;
 - no reaction sending, sent-message editing, or unsend;
 - no deletion of Apple messages or conversations;
 - no synchronization of rx archive or snooze state between Macs; and
@@ -132,6 +134,6 @@ The current interface source is listed in the
 
 ## License
 
-Licensing will be finalized before the first distributable build. The current
-message-decoding dependency is GPL-3.0, so any shipped application containing it
-must use a compatible license.
+rx is licensed under the [GNU General Public License v3.0](LICENSE). The
+message-decoding dependency chain is GPL-3.0-or-later, and rx adopts the same
+license for the whole application.
