@@ -82,6 +82,9 @@ describe('navigation mode map (spec §3.1)', () => {
     ['2', 'view.snoozed'],
     ['3', 'view.archive'],
     ['u', 'conv.markUnseen'],
+    ['s', 'conv.snooze'],
+    ['a', 'conv.archive'],
+    ['m', 'conv.moveToSpace'],
     ['Escape', 'nav.escape'],
   ])('%s → %s', (k, id) => {
     expect(resolveKey(nav, key({ key: k }))).toEqual({ type: 'command', id });
@@ -115,8 +118,23 @@ describe('g s chord (spec §4.3)', () => {
       type: 'command',
       id: 'list.next',
     });
+    expect(resolveKey({ ...nav, chordPending: true }, key({ key: 'a' }))).toEqual({
+      type: 'command',
+      id: 'conv.archive',
+    });
     expect(resolveKey({ ...nav, chordPending: true }, key({ key: 'g' }))).toEqual({
       type: 'chord-start',
+    });
+  });
+
+  it('a lone s snoozes; g s still opens the Space switcher', () => {
+    expect(resolveKey(nav, key({ key: 's' }))).toEqual({
+      type: 'command',
+      id: 'conv.snooze',
+    });
+    expect(resolveKey({ ...nav, chordPending: true }, key({ key: 's' }))).toEqual({
+      type: 'command',
+      id: 'space.switcher',
     });
   });
 });

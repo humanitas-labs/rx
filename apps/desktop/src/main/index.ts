@@ -5,7 +5,7 @@ import { BrowserWindow, app, net, powerMonitor, protocol, shell } from 'electron
 
 import { createDecoder } from '@rx/apple-body-decoder';
 import { createContactsBridge, createHelperLoader } from '@rx/apple-contacts';
-import { ATTACHMENT_PROTOCOL } from '@rx/contract';
+import { ATTACHMENT_PROTOCOL, AVATAR_PROTOCOL } from '@rx/contract';
 import { openWorkflowStore } from '@rx/core';
 import decoderWasmPath from '../../../../packages/apple-body-decoder/dist/decoder.wasm?asset';
 
@@ -29,6 +29,7 @@ app.setName('rx');
 // never copied into rx storage, and never by renderer-supplied path.
 protocol.registerSchemesAsPrivileged([
   { scheme: ATTACHMENT_PROTOCOL, privileges: { standard: true, stream: true } },
+  { scheme: AVATAR_PROTOCOL, privileges: { standard: true, stream: true } },
 ]);
 
 const startedAt = Date.now();
@@ -40,11 +41,13 @@ function createWindow(): BrowserWindow {
     minWidth: 900,
     minHeight: 600,
     show: false,
-    // Frameless with custom-positioned traffic lights (frame 48-2191:
-    // lights at 16,16 on a #141414 window).
+    // Frameless with custom-positioned traffic lights (frame 48-2191).
+    // Under-window vibrancy (iss-0021): desktop shows through a dark wash.
     titleBarStyle: 'hiddenInset',
     trafficLightPosition: { x: 16, y: 16 },
-    backgroundColor: '#141414',
+    backgroundColor: '#00000000',
+    vibrancy: 'under-window',
+    visualEffectState: 'active',
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       // The renderer is a sandboxed web application: no Node, no filesystem,
@@ -122,6 +125,24 @@ void app.whenReady().then(async () => {
       return new Response(null, { status: 404 });
     }
     return net.fetch(pathToFileURL(resolved.path).toString());
+  });
+
+  protocol.handle(AVATAR_PROTOCOL, async (request) => {
+    // avatarUrl(): rx-avatar://avatar/<encoded handle>
+    const handle = decodeURIComponent(new URL(request.url).pathname.replace(/^\//, ''));
+    // The first paint outruns the address-book load by seconds. Waiting here
+    // keeps that a slow image rather than a 404 the renderer would treat as
+    // "no photo" for the rest of the session.
+    await services.contacts.ready;
+    const photo = services.contacts.photo(handle);
+    if (photo === null) {
+      return new Response(null, { status: 404 });
+    }
+    // Immutable for the process lifetime: the snapshot loads once, and a
+    // changed address book arrives with the next launch.
+    return new Response(photo, {
+      headers: { 'content-type': 'image/jpeg', 'cache-control': 'no-cache' },
+    });
   });
 
   // Best effort: direct chats deep-link to the handle; groups have no public

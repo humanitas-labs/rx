@@ -13,7 +13,7 @@ import { MoveToSpace } from '@/features/conversations/MoveToSpace';
 import { SnoozePicker } from '@/features/conversations/SnoozePicker';
 import { CommandPalette } from '@/features/shell/CommandPalette';
 import { Reader } from '@/features/shell/Reader';
-import { Sidebar, type RowAction } from '@/features/shell/Sidebar';
+import { Sidebar } from '@/features/shell/Sidebar';
 import { SpaceSwitcher } from '@/features/shell/SpaceSwitcher';
 import {
   CHORD_WINDOW_MS,
@@ -376,10 +376,10 @@ export function Shell() {
       entry(
         'conv.archive',
         'Archive conversation',
-        undefined,
+        'A',
         hasSelection ? null : 'no conversation selected',
       ),
-      entry('conv.snooze', 'Snooze…', undefined, hasSelection ? null : 'no conversation selected'),
+      entry('conv.snooze', 'Snooze…', 'S', hasSelection ? null : 'no conversation selected'),
       entry(
         'conv.snoozeHour',
         'Snooze for 1 hour',
@@ -401,7 +401,7 @@ export function Shell() {
       entry(
         'conv.moveToSpace',
         'Move to Space…',
-        undefined,
+        'M',
         hasSelection ? null : 'no conversation selected',
       ),
       entry(
@@ -427,17 +427,6 @@ export function Shell() {
   }, [selectedGuid, view, spaces, runCommand]);
 
   // ---- row/menu affordances ----------------------------------------------
-
-  const onRowAction = useCallback(
-    (guid: string, action: RowAction) => {
-      if (action === 'snooze') {
-        openOverlay('snooze', guid);
-      } else {
-        triage(action, guid);
-      }
-    },
-    [openOverlay, triage],
-  );
 
   const menuItemsFor = useCallback(
     (guid: string): MenuItem[] => {
@@ -559,7 +548,6 @@ export function Shell() {
         selectedGuid={selectedGuid}
         onSelect={(guid) => setSelectedGuid(guid)}
         onSelectView={(v) => setView(v)}
-        onRowAction={onRowAction}
         onRowContextMenu={(guid, x, y) => setMenu({ guid, x, y })}
         filterQuery={filterQuery}
         filterActive={mode === 'filter' || filterQuery.length > 0}

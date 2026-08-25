@@ -53,10 +53,11 @@ is reported as a failure.
 - **Automation (Messages)** — requested by macOS on the first send. Denying
   it disables sending only; reading is unaffected.
 - **Contacts** — requested to resolve participant phone numbers and email
-  addresses to display names through Apple’s Contacts framework. rx loads a
-  read-only snapshot through its signed helper, keeps the lookup index in
-  memory, and never stores contact cards or names. Denial falls back to
-  Messages display names and raw handles.
+  addresses to display names and profile pictures through Apple’s Contacts
+  framework. rx loads a read-only snapshot through its signed helper, keeps
+  the lookup index and the avatar images in memory, and never stores contact
+  cards, names, or photos on disk. Denial falls back to Messages display
+  names, raw handles, and initials.
 
 ## What rx does not do
 

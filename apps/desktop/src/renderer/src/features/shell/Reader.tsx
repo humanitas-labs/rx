@@ -18,6 +18,7 @@ import chevronIcon from '@/assets/chevron.svg';
 import { ComposerField } from '@/features/compose/ComposerField';
 import { FAILURE_TEXT } from '@/features/compose/compose';
 import { Thread } from '@/features/thread/Thread';
+import { Avatar } from '@/ui/Avatar';
 import { Icon } from '@/ui/Icon';
 
 const PAGE_SIZE = 50;
@@ -201,7 +202,10 @@ export function Reader(props: {
   return (
     <main className="reader">
       <div className="reader-header">
-        <span className="avatar">{initials(name)}</span>
+        <Avatar
+          name={name}
+          handles={props.conversation.isGroup ? [] : props.conversation.participantHandles}
+        />
         <button
           className="reader-header-name"
           title="Conversation actions"
@@ -265,8 +269,3 @@ export function Reader(props: {
   );
 }
 
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  const chars = parts.slice(0, 2).map((p) => (p[0] ?? '').toUpperCase());
-  return chars.join('') || '?';
-}

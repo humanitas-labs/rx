@@ -57,7 +57,10 @@ export function MoveToSpace(props: {
         onClick={(e) => e.stopPropagation()}
         onKeyDown={onKeyDown}
       >
-        <div className="overlay-title">Move “{props.conversationName}” to…</div>
+        <div className="overlay-heading">
+          <div className="overlay-kicker">Move to Space</div>
+          <div className="overlay-title">{props.conversationName || 'this conversation'}</div>
+        </div>
         {entries.map((entry, index) => (
           <button
             key={entry.spaceId ?? 'unassigned'}

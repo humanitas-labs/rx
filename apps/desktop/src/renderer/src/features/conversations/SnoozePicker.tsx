@@ -62,7 +62,10 @@ export function SnoozePicker(props: {
         onClick={(e) => e.stopPropagation()}
         onKeyDown={onKeyDown}
       >
-        <div className="overlay-title">Snooze “{props.conversationName}” until…</div>
+        <div className="overlay-heading">
+          <div className="overlay-kicker">Snooze until</div>
+          <div className="overlay-title">{props.conversationName || 'this conversation'}</div>
+        </div>
         {presets.map((preset, index) => (
           <button
             key={preset.id}
@@ -77,7 +80,7 @@ export function SnoozePicker(props: {
           </button>
         ))}
         <div
-          className={`overlay-row custom${cursor === customIndex ? ' selected' : ''}`}
+          className={`overlay-row custom overlay-footer${cursor === customIndex ? ' selected' : ''}`}
           onMouseEnter={() => setCursor(customIndex)}
         >
           <input

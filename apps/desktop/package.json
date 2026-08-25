@@ -1,6 +1,6 @@
 {
   "name": "@rx/desktop",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "private": true,
   "license": "GPL-3.0-only",
   "description": "rx — a local-first Apple Messages client for macOS",
@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "pnpm build:contacts && electron-vite dev",
     "build": "electron-vite build",
-    "build:contacts": "mkdir -p build && swiftc -O resources/contacts/rx-contacts.swift -o build/rx-contacts && codesign --remove-signature build/rx-contacts",
+    "build:contacts": "mkdir -p build && swiftc -O resources/contacts/rx-contacts.swift -o build/rx-contacts && codesign --force --sign - build/rx-contacts",
     "typecheck": "tsc -p tsconfig.node.json && tsc -p tsconfig.web.json",
     "pretest": "pnpm --filter @rx/apple-body-decoder build:wasm",
     "test": "vitest run",

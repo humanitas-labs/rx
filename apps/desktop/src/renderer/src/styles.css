@@ -4,9 +4,11 @@
    bars #b2faae, unread dot #00ccff, bubbles #1f1f1f / #009df8. */
 
 :root {
-  --bg: #141414;
-  --raised: #171717;
-  --hairline: #252525;
+  /* Window wash over NSVisualEffectView (iss-0021). Raised/hairline stay
+     more opaque so composer, rows, and overlays do not go cardboard. */
+  --bg: rgba(20, 20, 20, 0.86);
+  --raised: rgba(23, 23, 23, 0.92);
+  --hairline: rgba(37, 37, 37, 0.9);
   --bubble-in: #1f1f1f;
   --bubble-out: #009df8;
   --edge: #b2faae;
@@ -31,6 +33,7 @@ html,
 body,
 #root {
   height: 100%;
+  background: transparent;
 }
 
 body {
@@ -41,6 +44,32 @@ body {
   color: var(--text);
   user-select: none;
   overflow: hidden;
+}
+
+.shell,
+.sidebar,
+.reader {
+  background: transparent;
+}
+
+/* Overlay thumbs read near-black on #141414; match the composer fill. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--raised) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--raised);
+  border-radius: 8px;
 }
 
 button {
@@ -100,7 +129,7 @@ textarea::placeholder {
   display: flex;
   align-items: flex-start;
   justify-content: flex-end;
-  padding: 12px 14px 0;
+  padding: 12px 10px 0;
   -webkit-app-region: drag;
 }
 
@@ -246,6 +275,7 @@ textarea::placeholder {
 }
 
 .avatar {
+  position: relative;
   flex: none;
   width: 40px;
   height: 40px;
@@ -256,6 +286,23 @@ textarea::placeholder {
   place-items: center;
   font-size: 14px;
   color: var(--text-dim);
+  overflow: hidden;
+}
+
+/* Contact photo covers the initials underneath — but only once it decodes,
+   so handles with no photo never flash a broken image. */
+.avatar-photo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  opacity: 0;
+}
+
+.avatar-photo.loaded {
+  opacity: 1;
 }
 
 .conv-main {
@@ -293,35 +340,6 @@ textarea::placeholder {
   color: var(--text-dim);
   font-size: 11.4px;
   letter-spacing: -0.01em;
-}
-
-/* Hover triage glyphs (inventory §1.4): hidden until hover, over the time. */
-.row-actions {
-  position: absolute;
-  right: 13px;
-  bottom: 9px;
-  display: none;
-  gap: 4px;
-}
-
-.conv-row:hover .row-actions {
-  display: flex;
-}
-
-.row-action {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: var(--raised);
-  border: 1px solid var(--hairline);
-  color: var(--text-dim);
-  display: grid;
-  place-items: center;
-  font-size: 12px;
-}
-
-.row-action:hover {
-  color: var(--text);
 }
 
 /* Space button (frame 48-2191): 32px circle, hexagon glyph, bottom-left. */
@@ -612,13 +630,13 @@ textarea::placeholder {
 
 /* ---- overlays ---- */
 
-/* Frame 48-2301: dark scrim with 15px blur over the whole window. */
+/* Frame 48-2301: dark scrim with blur over the whole window. */
 .scrim {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.35);
-  backdrop-filter: blur(15px);
-  -webkit-backdrop-filter: blur(15px);
+  background: rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   display: flex;
   align-items: flex-end;
   justify-content: flex-start;
@@ -631,10 +649,10 @@ textarea::placeholder {
 }
 
 .overlay-panel {
-  background: var(--raised);
-  border: 1px solid var(--hairline);
-  border-radius: 12px;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+  background: #1a1a1a;
+  border: 1px solid #2c2c2c;
+  border-radius: 16px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55);
   overflow: hidden;
 }
 
@@ -769,56 +787,77 @@ textarea::placeholder {
 
 /* ---- generic overlay rows (palette, snooze, move) ---- */
 
+.overlay-heading {
+  padding: 6px 12px 10px;
+}
+
+.overlay-kicker {
+  color: var(--text-dim);
+  font-size: 11px;
+  letter-spacing: 0.02em;
+}
+
+.overlay-title {
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 510;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .overlay-row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   width: 100%;
-  padding: 8px 10px;
-  border-radius: 8px;
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 10px;
   text-align: left;
+  font-size: 13px;
 }
 
 .overlay-row.selected {
-  background: rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .overlay-row .hint {
   margin-left: auto;
   color: var(--text-dim);
   font-size: 11px;
+  font-variant-numeric: tabular-nums;
 }
 
 .overlay-row.disabled {
   color: var(--text-placeholder);
 }
 
-.overlay-title {
-  padding: 8px 10px 6px;
-  color: var(--text-dim);
-  font-size: 12px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 .overlay-error {
-  padding: 4px 10px 8px;
+  padding: 4px 12px 8px;
   color: var(--danger);
   font-size: 11px;
 }
 
+.overlay-footer {
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid #2c2c2c;
+  border-radius: 0 0 10px 10px;
+}
+
 .snooze-panel {
-  min-width: 320px;
+  min-width: 340px;
   max-width: 420px;
-  padding: 6px;
+  padding: 12px 8px 8px;
 }
 
 /* New conversation (step 10) */
 .compose-panel {
   min-width: 380px;
   max-width: 460px;
-  padding: 10px;
+  padding: 14px 12px 12px;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -870,12 +909,16 @@ textarea::placeholder {
 
 .overlay-row.custom {
   gap: 8px;
+  min-height: 44px;
 }
 
 .overlay-row.custom input {
   flex: 1;
-  padding: 4px 8px;
-  border-radius: 8px;
+  min-width: 0;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 10px;
+  font-size: 12px;
 }
 
 .btn {
@@ -905,14 +948,15 @@ textarea::placeholder {
 }
 
 .palette input {
-  margin: 8px;
-  padding: 8px 12px;
+  margin: 10px 10px 6px;
+  padding: 9px 12px;
   border-radius: 10px;
+  font-size: 14px;
 }
 
 .palette-list {
   overflow-y: auto;
-  padding: 0 6px 6px;
+  padding: 0 6px 8px;
 }
 
 /* ---- context menu ---- */
@@ -925,13 +969,13 @@ textarea::placeholder {
 
 .context-menu {
   position: fixed;
-  min-width: 200px;
+  min-width: 220px;
   max-width: 280px;
-  padding: 5px;
-  background: var(--raised);
-  border: 1px solid var(--hairline);
-  border-radius: 10px;
-  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.5);
+  padding: 6px;
+  background: #1a1a1a;
+  border: 1px solid #2c2c2c;
+  border-radius: 14px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
   outline: none;
 }
 
@@ -940,16 +984,18 @@ textarea::placeholder {
   align-items: center;
   gap: 6px;
   width: 100%;
-  padding: 6px 8px;
-  border-radius: 6px;
+  min-height: 32px;
+  padding: 0 10px;
+  border-radius: 8px;
   text-align: left;
+  font-size: 13px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .menu-item:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .menu-item:disabled {

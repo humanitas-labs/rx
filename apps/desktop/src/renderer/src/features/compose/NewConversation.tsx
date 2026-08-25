@@ -57,7 +57,9 @@ export function NewConversation(props: {
           }
         }}
       >
-        <div className="overlay-title">New conversation</div>
+        <div className="overlay-heading">
+          <div className="overlay-title">New conversation</div>
+        </div>
         <input
           ref={handleRef}
           className="compose-handle"

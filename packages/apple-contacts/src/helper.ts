@@ -44,7 +44,7 @@ export function parseSnapshot(raw: string): ContactsSnapshot {
     throw new Error('contacts-shape');
   }
   const contacts: ContactCard[] = document.contacts.map((entry: unknown) => {
-    const card = entry as { name?: unknown; phones?: unknown; emails?: unknown };
+    const card = entry as { name?: unknown; phones?: unknown; emails?: unknown; photo?: unknown };
     if (
       typeof card.name !== 'string' ||
       !Array.isArray(card.phones) ||
@@ -56,6 +56,7 @@ export function parseSnapshot(raw: string): ContactsSnapshot {
       name: card.name,
       phones: card.phones.filter((p): p is string => typeof p === 'string'),
       emails: card.emails.filter((e): e is string => typeof e === 'string'),
+      ...(typeof card.photo === 'string' ? { photo: card.photo } : {}),
     };
   });
   return { granted: document.granted, contacts };

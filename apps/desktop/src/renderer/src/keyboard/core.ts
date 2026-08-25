@@ -103,6 +103,12 @@ export function resolveKey(state: KeyState, input: KeyInput): KeyAction {
       return command('view.archive');
     case 'u':
       return command('conv.markUnseen');
+    case 's':
+      return command('conv.snooze');
+    case 'a':
+      return command('conv.archive');
+    case 'm':
+      return command('conv.moveToSpace');
     case 'g':
       return { type: 'chord-start' };
     case 'Escape':

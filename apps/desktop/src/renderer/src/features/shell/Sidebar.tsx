@@ -1,9 +1,9 @@
 // Sidebar per frame 48-2191: view tabs, filter, virtualized conversation
 // list, Space button. Rows carry the designed anatomy — 40 px avatar, name,
-// one-line preview, relative time, unread dot, active bar — plus the step-8
-// triage affordances: hover glyphs and a context menu (inventory §1.4, §2).
+// one-line preview, relative time, unread dot, active bar. Triage is
+// keyboard / palette / context menu (iss-0006 retires the hover glyphs).
 
-import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
+import { useEffect, useRef, useState, type RefObject } from 'react';
 
 import type { ConversationView, ListView } from '@rx/contract';
 
@@ -14,11 +14,10 @@ import filterIcon from '@/assets/filter.svg';
 import hexagonIcon from '@/assets/hexagon.svg';
 import inboxIcon from '@/assets/inbox.svg';
 import { computeWindow, scrollTopFor } from '@/features/conversations/virtual';
+import { Avatar } from '@/ui/Avatar';
 import { Icon } from '@/ui/Icon';
 
 export const ROW_HEIGHT = 64;
-
-export type RowAction = 'archive' | 'snooze' | 'restore';
 
 const VIEWS: { key: ListView; label: string; shortcut: string; icon: string }[] = [
   { key: 'inbox', label: 'Inbox', shortcut: '1', icon: inboxIcon },
@@ -34,7 +33,6 @@ export function Sidebar(props: {
   selectedGuid: string | null;
   onSelect: (guid: string) => void;
   onSelectView: (view: ListView) => void;
-  onRowAction: (guid: string, action: RowAction) => void;
   onRowContextMenu: (guid: string, x: number, y: number) => void;
   filterQuery: string;
   filterActive: boolean;
@@ -158,7 +156,6 @@ export function Sidebar(props: {
                 view={props.view}
                 selected={c.chatGuid === props.selectedGuid}
                 onSelect={() => props.onSelect(c.chatGuid)}
-                onAction={(action) => props.onRowAction(c.chatGuid, action)}
                 onContextMenu={(x, y) => props.onRowContextMenu(c.chatGuid, x, y)}
               />
             ))}
@@ -189,14 +186,12 @@ function ConversationRow({
   view,
   selected,
   onSelect,
-  onAction,
   onContextMenu,
 }: {
   conversation: ConversationView;
   view: ListView;
   selected: boolean;
   onSelect: () => void;
-  onAction: (action: RowAction) => void;
   onContextMenu: (x: number, y: number) => void;
 }) {
   const name = c.displayName ?? c.participantHandles.join(', ');
@@ -204,28 +199,6 @@ function ConversationRow({
     view === 'snoozed' && c.state.kind === 'snoozed'
       ? `⏰ ${formatTime(c.state.wakeAt)}`
       : formatTime(c.lastActivityAtMs);
-  const actions: { action: RowAction; label: string; glyph: ReactNode }[] =
-    c.state.kind === 'inbox'
-      ? [
-          {
-            action: 'snooze',
-            label: 'Snooze…',
-            glyph: <Icon src={clockDashedIcon} width={11} height={11} />,
-          },
-          {
-            action: 'archive',
-            label: 'Archive',
-            glyph: <Icon src={archiveIcon} width={11} height={11} />,
-          },
-        ]
-      : [
-          {
-            action: 'snooze',
-            label: 'Snooze…',
-            glyph: <Icon src={clockDashedIcon} width={11} height={11} />,
-          },
-          { action: 'restore', label: 'Restore to Inbox', glyph: '↩' },
-        ];
   return (
     <div
       role="option"
@@ -239,7 +212,7 @@ function ConversationRow({
       }}
     >
       {c.unread && <span className="unread-dot" />}
-      <span className="avatar">{initials(name)}</span>
+      <Avatar name={name} handles={c.isGroup ? [] : c.participantHandles} />
       <span className="conv-main">
         <span className="conv-name">{name || 'Unknown'}</span>
         <span className="conv-sub">
@@ -248,23 +221,6 @@ function ConversationRow({
         </span>
       </span>
       <span className="conv-time">{time}</span>
-      <span className="row-actions">
-        {actions.map((a) => (
-          <button
-            key={a.action}
-            className="row-action"
-            title={a.label}
-            aria-label={a.label}
-            onClick={(e) => {
-              e.stopPropagation();
-              onSelect();
-              onAction(a.action);
-            }}
-          >
-            {a.glyph}
-          </button>
-        ))}
-      </span>
     </div>
   );
 }
@@ -281,12 +237,6 @@ function emptyLabel(view: ListView, filter: string): string {
     case 'archived':
       return 'Nothing archived.';
   }
-}
-
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  const chars = parts.slice(0, 2).map((p) => (p[0] ?? '').toUpperCase());
-  return chars.join('') || '?';
 }
 
 /** `11:10` today, `Yesterday`, weekday within a week, else a short date. */

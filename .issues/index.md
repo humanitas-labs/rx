@@ -6,7 +6,7 @@
 >
 > Selection: state=all; labels=[]; assignee=any; author=any; limit=100; sort=updated; order=desc.
 >
-> Data as of: 2026-08-25T07:04:53Z.
+> Data as of: 2026-08-25T07:59:56Z.
 
 | Issue | State | Labels | Updated |
 | --- | --- | --- | --- |
@@ -28,3 +28,6 @@
 | [ISS-0016 — Keyboard: gg/G, h/l pane focus, and jk as Escape](iss-0016.md) | open | `enhancement` | 2026-08-25 |
 | [ISS-0017 — Conversation details card from the reader header](iss-0017.md) | open | `enhancement` | 2026-08-25 |
 | [ISS-0018 — Delivered and Read receipts under the last outbound bubble](iss-0018.md) | open | `enhancement` | 2026-08-25 |
+| [ISS-0019 — Blur the reader header so messages scroll underneath](iss-0019.md) | open | `enhancement` | 2026-08-25 |
+| [ISS-0020 — Light appearance](iss-0020.md) | open | `enhancement` | 2026-08-25 |
+| [ISS-0021 — Window vibrancy so the desktop shows through](iss-0021.md) | open | `enhancement` | 2026-08-25 |

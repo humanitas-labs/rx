@@ -67,6 +67,9 @@ Insert mode.
 | `2` | Select view 2 | Opens Snoozed |
 | `3` | Select view 3 | Opens Archive |
 | `u` | Mark conversation unread | Rewinds the rx seen watermark; Apple's `is_read` is not touched |
+| `s` | Snooze conversation | Opens the snooze picker for the selected conversation |
+| `a` | Archive conversation | Archives the selected conversation immediately |
+| `m` | Move conversation to Space | Opens the Space assignment picker |
 | `4` | Reserved view slot | Unbound until a fourth workflow view is approved |
 | `g s` | Go to Space | Opens the Space selector |
 | `Cmd-K` | Open command palette | Opens the global command palette |
@@ -150,8 +153,9 @@ to fill the shortcut slot.
 
 `g s` is a two-key chord available only in Navigation mode. Pressing `g` starts
 a 750 ms chord window. Pressing `s` within that window opens the Space selector.
-`Escape`, timeout, or any other key cancels the chord. A non-matching key is
-then processed normally so the chord does not swallow a valid command.
+A lone `s` (no pending chord) opens the snooze picker. `Escape`, timeout, or any
+other key cancels the chord. A non-matching key is then processed normally so
+the chord does not swallow a valid command.
 
 The selector contains, in order:
 

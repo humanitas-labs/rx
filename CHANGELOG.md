@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.11.0 — 2026.08.25
+
+Triage keys, contact photos, and a first vibrancy pass.
+
+- Navigation `s` / `a` / `m` open snooze, archive, and Move to Space. The
+  same commands are labeled in the palette. Hover archive/snooze glyphs are
+  gone; context menu still covers them.
+- Overlays (snooze, move, palette, new conversation, context menu) share one
+  card. Composer nudged right; scrollbar thumb matches the composer fill.
+- Window uses under-window vibrancy with a 0.86 dark wash so the desktop
+  reads as grain (iss-0021). Bubbles and the composer stay opaque.
+- Contact profile pictures render in conversation rows and the reader header,
+  with initials as the fallback. The helper re-encodes each address-book
+  thumbnail at avatar size, and main serves the bytes over `rx-avatar://`.
+- The contacts helper is ad-hoc signed after compile (`codesign --sign -`).
+  `--remove-signature` was killing it on Apple silicon outside packaged builds.
+
 ## 0.10.0 — 2026.08.25
 
 Contact names, mark-unread, and composer polish.

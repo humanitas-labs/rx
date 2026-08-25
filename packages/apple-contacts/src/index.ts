@@ -16,6 +16,13 @@ export interface ResolvedContact {
 export interface ContactsBridge {
   /** Resolve a bounded batch of handles. Missing entries resolve to null. */
   resolve(handles: readonly string[]): Promise<ResolvedContact[]>;
+  /**
+   * Avatar JPEG bytes for a handle, or null when the card has no photo, the
+   * handle is unknown, or the snapshot has not loaded. Synchronous: the
+   * snapshot is already in memory, and the protocol handler serving these
+   * must answer without a round trip.
+   */
+  photo(handle: string): Uint8Array<ArrayBuffer> | null;
 }
 
 /** One address-book card as reported by the helper. Synthetic in tests. */
@@ -23,6 +30,8 @@ export interface ContactCard {
   name: string;
   phones: string[];
   emails: string[];
+  /** Base64 JPEG avatar, absent when the card carries no image. */
+  photo?: string;
 }
 
 export interface ContactsSnapshot {
@@ -44,6 +53,9 @@ export function createFallbackBridge(): ContactsBridge {
     resolve(handles) {
       return Promise.resolve(handles.map((handle) => ({ handle, displayName: null })));
     },
+    photo() {
+      return null;
+    },
   };
 }
 
@@ -64,7 +76,7 @@ export interface LoadedContactsBridge extends ContactsBridge {
  * (macOS would not re-prompt anyway).
  */
 export function createContactsBridge(load: ContactsLoader): LoadedContactsBridge {
-  let index: Map<string, string> | null = null;
+  let index: Map<string, ContactEntry> | null = null;
   let loading: Promise<void> | null = null;
 
   function startLoad(): Promise<void> {
@@ -91,34 +103,56 @@ export function createContactsBridge(load: ContactsLoader): LoadedContactsBridge
       }
       const idx = index;
       return Promise.resolve(
-        handles.map((handle) => ({ handle, displayName: lookup(idx, handle) })),
+        handles.map((handle) => ({ handle, displayName: lookup(idx, handle)?.name ?? null })),
       );
+    },
+    photo(handle) {
+      return index === null ? null : (lookup(index, handle)?.photo ?? null);
     },
   };
 }
 
-function buildIndex(snapshot: ContactsSnapshot): Map<string, string> {
-  const index = new Map<string, string>();
+interface ContactEntry {
+  name: string;
+  /** Decoded once at index time; the protocol handler serves these directly. */
+  photo: Uint8Array<ArrayBuffer> | null;
+}
+
+function buildIndex(snapshot: ContactsSnapshot): Map<string, ContactEntry> {
+  const index = new Map<string, ContactEntry>();
   if (!snapshot.granted) {
     return index;
   }
   // First card wins on key collisions, matching enumeration order.
-  const claim = (key: string, name: string) => {
+  const claim = (key: string, entry: ContactEntry) => {
     if (key !== '' && !index.has(key)) {
-      index.set(key, name);
+      index.set(key, entry);
     }
   };
   for (const card of snapshot.contacts) {
+    const entry: ContactEntry = { name: card.name, photo: decodePhoto(card.photo) };
     for (const phone of card.phones) {
       for (const key of phoneKeys(phone)) {
-        claim(key, card.name);
+        claim(key, entry);
       }
     }
     for (const email of card.emails) {
-      claim(email.trim().toLowerCase(), card.name);
+      claim(email.trim().toLowerCase(), entry);
     }
   }
   return index;
+}
+
+/** A card whose photo fails to decode is kept — the name still resolves. */
+function decodePhoto(base64: string | undefined): Uint8Array<ArrayBuffer> | null {
+  if (base64 === undefined || base64 === '') {
+    return null;
+  }
+  try {
+    return Uint8Array.from(atob(base64), (character) => character.charCodeAt(0));
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -134,14 +168,14 @@ function phoneKeys(raw: string): string[] {
   return digits.length > 10 ? [digits, digits.slice(-10)] : [digits];
 }
 
-function lookup(index: Map<string, string>, handle: string): string | null {
+function lookup(index: Map<string, ContactEntry>, handle: string): ContactEntry | null {
   if (handle.includes('@')) {
     return index.get(handle.trim().toLowerCase()) ?? null;
   }
   for (const key of phoneKeys(handle)) {
-    const name = index.get(key);
-    if (name !== undefined) {
-      return name;
+    const entry = index.get(key);
+    if (entry !== undefined) {
+      return entry;
     }
   }
   return null;

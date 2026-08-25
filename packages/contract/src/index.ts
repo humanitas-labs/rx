@@ -113,6 +113,18 @@ export function attachmentUrl(guid: string): string {
   return `${ATTACHMENT_PROTOCOL}://attachment/${encodeURIComponent(guid)}`;
 }
 
+/**
+ * Contact avatars follow the same rule as attachments: main resolves the
+ * handle against the in-memory Contacts snapshot and serves the bytes. Photos
+ * live inside the Contacts store, so there is no path to hand over, and the
+ * sandboxed renderer could not read one anyway.
+ */
+export const AVATAR_PROTOCOL = 'rx-avatar';
+
+export function avatarUrl(handle: string): string {
+  return `${AVATAR_PROTOCOL}://avatar/${encodeURIComponent(handle)}`;
+}
+
 export const messageItemSchema = z.discriminatedUnion('kind', [
   z.object({
     kind: z.literal('text'),

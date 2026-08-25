@@ -6,7 +6,9 @@
       "@/*": ["src/main/*"]
     },
     "types": ["node"],
-    "lib": ["ES2023", "DOM"]
+    "lib": ["ES2023", "DOM"],
+    // tests/ holds renderer tests alongside main-process ones.
+    "jsx": "react-jsx"
   },
   "include": ["src/main", "src/preload", "tests", "electron.vite.config.ts", "vitest.config.ts"]
 }
