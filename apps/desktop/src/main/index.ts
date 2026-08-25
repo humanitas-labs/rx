@@ -1,6 +1,6 @@
 import { mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { BrowserWindow, app } from 'electron';
+import { BrowserWindow, app, shell } from 'electron';
 
 import { createDecoder } from '@rx/apple-body-decoder';
 import { openWorkflowStore } from '@rx/core';
@@ -28,6 +28,10 @@ function createWindow(): BrowserWindow {
     minWidth: 900,
     minHeight: 600,
     show: false,
+    // Frameless with custom-positioned traffic lights (frame 48-2191).
+    titleBarStyle: 'hiddenInset',
+    trafficLightPosition: { x: 20, y: 18 },
+    backgroundColor: '#1a1a1c',
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       // The renderer is a sandboxed web application: no Node, no filesystem,
@@ -55,21 +59,37 @@ void app.whenReady().then(async () => {
     startedAt,
   }));
 
-  const messagesDbPath = defaultMessagesDatabasePath();
-  const capabilities = checkCapabilities(messagesDbPath);
-  const sourceUsable = capabilities.database === 'ok' && capabilities.missingTables.length === 0;
+  registerCommand('app.openPermissionSettings', ({ pane }) => {
+    const url =
+      pane === 'full-disk-access'
+        ? 'x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles'
+        : 'x-apple.systempreferences:com.apple.preference.security?Privacy_Automation';
+    void shell.openExternal(url);
+    return {};
+  });
 
+  const messagesDbPath = defaultMessagesDatabasePath();
   const userData = app.getPath('userData');
   mkdirSync(userData, { recursive: true });
 
-  registerCommands(
-    createCommands({
-      reader: sourceUsable ? openMessagesDatabase(messagesDbPath) : null,
-      decoder: await createDecoder(readFileSync(decoderWasmPath)),
-      store: openWorkflowStore(join(userData, 'workflow.db')),
-      messagesDbPath,
-    }),
-  );
+  // The reader opens lazily so access granted while rx is running (onboarding
+  // polls capabilities) starts working without a relaunch.
+  let reader: ReturnType<typeof openMessagesDatabase> | null = null;
+  const services = {
+    get reader() {
+      if (reader === null) {
+        const capabilities = checkCapabilities(messagesDbPath);
+        if (capabilities.database === 'ok' && capabilities.missingTables.length === 0) {
+          reader = openMessagesDatabase(messagesDbPath);
+        }
+      }
+      return reader;
+    },
+    decoder: await createDecoder(readFileSync(decoderWasmPath)),
+    store: openWorkflowStore(join(userData, 'workflow.db')),
+    messagesDbPath,
+  };
+  registerCommands(createCommands(services));
 
   const window = createWindow();
 

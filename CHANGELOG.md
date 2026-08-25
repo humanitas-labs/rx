@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.5.0 — 2026.08.24
+
+Onboarding and the application shell (plan step 7).
+
+- Modal keyboard core per docs/spec/keyboard.md: pure `resolveKey` with the
+  §5 event-priority order (IME, overlay, global modified shortcuts, text
+  modes, Navigation), the 750 ms `g s` chord that never swallows a failed
+  chord's key, and palette entries that keep unavailable commands visible
+  with a reason. 20 unit tests.
+- Shell: frameless dark window (hiddenInset traffic lights), sidebar with
+  Inbox/Snoozed/Archive tabs (`1`/`2`/`3`), `j`/`k` selection with per-
+  (Space, view) memory and nearest-row fallback, `/` filter with two-stage
+  Escape, Space switcher overlay (`g s`, frame 48-2301: All, user Spaces
+  with ⌘ numbers, Unassigned, inline New Space), and a `Cmd-K` command
+  palette wired to the single command registry (archive, snooze presets,
+  restore included; no optimistic disappearance).
+- Reader: latest 50 items with typed fallbacks, seen-watermark advance on
+  open, draft-preserving composer entering Insert mode (`i`/`Escape`);
+  sending stays visibly disabled until step 10.
+- Onboarding: capability-gated routing with per-permission status and
+  actions (Full Disk Access deep link, schema-drift fatal state,
+  Messages.app presence, Automation explained); polls every 2 s and the
+  main-process reader now opens lazily, so granting access flips to the
+  shell without a relaunch.
+
 ## 0.4.0 — 2026.08.24
 
 Application read models and the full command surface (plan step 6).

@@ -163,6 +163,11 @@ export const commands = {
     request: z.object({}),
     response: capabilitiesSchema,
   },
+  /** Open the macOS privacy pane the user needs (onboarding, plan step 7). */
+  'app.openPermissionSettings': {
+    request: z.object({ pane: z.enum(['full-disk-access', 'automation']) }),
+    response: z.object({}),
+  },
   'conversations.list': {
     request: z.object({
       view: listViewSchema,

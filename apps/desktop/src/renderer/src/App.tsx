@@ -1,40 +1,41 @@
+// Root: capability-gated routing (plan step 7). Content never loads before
+// permissions pass; onboarding polls so granting access flips to the shell
+// without a relaunch.
+
 import { useEffect, useState } from 'react';
 
-import type { AppStatusResponse, HeartbeatEvent } from '@rx/contract';
+import type { CapabilitiesView } from '@rx/contract';
 
-// Placeholder shell proving the typed IPC contract end to end: one command
-// (app.status) and one event (app.heartbeat). Replaced by the real interface
-// from plan step 6 onward.
+import { Onboarding } from '@/features/onboarding/Onboarding';
+import { Shell } from '@/features/shell/Shell';
+
+const RECHECK_MS = 2_000;
+
 export function App() {
-  const [status, setStatus] = useState<AppStatusResponse | null>(null);
-  const [heartbeat, setHeartbeat] = useState<HeartbeatEvent | null>(null);
+  const [capabilities, setCapabilities] = useState<CapabilitiesView | null>(null);
+  const [checkTick, setCheckTick] = useState(0);
+
+  const usable =
+    capabilities !== null && capabilities.database === 'ok' && capabilities.missingTables.length === 0;
 
   useEffect(() => {
-    void window.rx.invoke('app.status', {}).then(setStatus);
-    return window.rx.on('app.heartbeat', setHeartbeat);
-  }, []);
+    void window.rx.invoke('app.capabilities', {}).then(setCapabilities);
+  }, [checkTick]);
 
-  return (
-    <main
-      style={{
-        fontFamily: '-apple-system, system-ui, sans-serif',
-        display: 'grid',
-        placeItems: 'center',
-        minHeight: '100vh',
-        margin: 0,
-        background: '#111',
-        color: '#eee',
-      }}
-    >
-      <div style={{ textAlign: 'center' }}>
-        <h1 style={{ fontWeight: 600, letterSpacing: '-0.02em' }}>rx</h1>
-        <p>{status ? `v${status.version} on ${status.platform}` : 'waiting for main process…'}</p>
-        <p style={{ color: '#888' }}>
-          {heartbeat
-            ? `heartbeat: up ${Math.round(heartbeat.uptimeMs / 1000)}s`
-            : 'no heartbeat yet'}
-        </p>
-      </div>
-    </main>
-  );
+  // Poll while blocked so a granted permission is noticed automatically.
+  useEffect(() => {
+    if (usable || capabilities === null) {
+      return;
+    }
+    const timer = window.setInterval(() => setCheckTick((t) => t + 1), RECHECK_MS);
+    return () => window.clearInterval(timer);
+  }, [usable, capabilities]);
+
+  if (capabilities === null) {
+    return <div className="placeholder" style={{ height: '100vh' }} />;
+  }
+  if (!usable) {
+    return <Onboarding capabilities={capabilities} onRecheck={() => setCheckTick((t) => t + 1)} />;
+  }
+  return <Shell />;
 }
