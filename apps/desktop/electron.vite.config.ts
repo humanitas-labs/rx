@@ -4,7 +4,10 @@ import { defineConfig, externalizeDepsPlugin } from 'electron-vite';
 
 export default defineConfig({
   main: {
-    plugins: [externalizeDepsPlugin({ exclude: ['@rx/contract', '@rx/core'] })],
+    // zod is bundled (not externalized): the packaged app ships no
+    // node_modules, and the hoisted workspace layout keeps deps at the repo
+    // root where electron-builder cannot collect them.
+    plugins: [externalizeDepsPlugin({ exclude: ['@rx/contract', '@rx/core', 'zod'] })],
     resolve: {
       alias: {
         '@': resolve(__dirname, 'src/main'),
