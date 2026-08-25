@@ -550,31 +550,6 @@ textarea::placeholder {
   resize: none;
 }
 
-/* While delivery is in flight, a blue streak shoots across the pill
-   left → right (iMessage-style send feedback). */
-textarea.sending {
-  background-image: linear-gradient(
-    100deg,
-    transparent 0%,
-    rgba(0, 157, 248, 0.12) 35%,
-    rgba(0, 157, 248, 0.35) 50%,
-    rgba(0, 157, 248, 0.12) 65%,
-    transparent 100%
-  );
-  background-size: 60% 100%;
-  background-repeat: no-repeat;
-  animation: send-sweep 0.9s ease-in-out infinite;
-}
-
-@keyframes send-sweep {
-  from {
-    background-position-x: -80%;
-  }
-  to {
-    background-position-x: 180%;
-  }
-}
-
 /* ---- placeholders ---- */
 
 .placeholder {

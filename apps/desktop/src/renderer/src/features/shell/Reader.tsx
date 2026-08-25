@@ -123,11 +123,13 @@ export function Reader(props: {
         // Verified in the source: only now does the draft clear (§4.4).
         props.draftsRef.current.delete(chatGuid);
         setSendState({ kind: 'idle' });
-        setSentTick((t) => t + 1);
         props.onSent();
-        return window.rx
-          .invoke('thread.page', { chatGuid, limit: PAGE_SIZE })
-          .then((page) => setThread(page));
+        return window.rx.invoke('thread.page', { chatGuid, limit: PAGE_SIZE }).then((page) => {
+          // One batched render: the thread remounts with the new message
+          // already present, so the mount scroll lands on the true bottom.
+          setThread(page);
+          setSentTick((t) => t + 1);
+        });
       })
       .catch(() => setSendState({ kind: 'failed', reason: 'automation-error' }));
   }, [chatGuid, sendState.kind]);
@@ -187,7 +189,6 @@ export function Reader(props: {
       <div className="composer">
         <textarea
           ref={props.composerRef}
-          className={sendState.kind === 'sending' ? 'sending' : undefined}
           placeholder="Message"
           value={draft}
           rows={1}

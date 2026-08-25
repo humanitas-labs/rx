@@ -73,7 +73,7 @@ export function NewConversation(props: {
           <div className="compose-hint">Enter a full phone number or email address.</div>
         )}
         <textarea
-          className={`compose-text${sending ? ' sending' : ''}`}
+          className="compose-text"
           placeholder="Message"
           rows={3}
           value={text}
