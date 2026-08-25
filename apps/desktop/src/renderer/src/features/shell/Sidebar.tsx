@@ -1,10 +1,17 @@
-// Sidebar per frame 48-2191: view tabs, filter, conversation list, Space
-// button. Rows show the designed anatomy (avatar, name, sub-line, time,
-// unread dot, active bar); the visual polish pass lands with step 8.
+// Sidebar per frame 48-2191: view tabs, filter, virtualized conversation
+// list, Space button. Rows carry the designed anatomy — 40 px avatar, name,
+// one-line preview, relative time, unread dot, active bar — plus the step-8
+// triage affordances: hover glyphs and a context menu (inventory §1.4, §2).
 
-import type { RefObject } from 'react';
+import { useEffect, useRef, useState, type RefObject } from 'react';
 
 import type { ConversationView, ListView } from '@rx/contract';
+
+import { computeWindow, scrollTopFor } from '@/features/conversations/virtual';
+
+export const ROW_HEIGHT = 64;
+
+export type RowAction = 'archive' | 'snooze' | 'restore';
 
 const VIEWS: { key: ListView; label: string; shortcut: string }[] = [
   { key: 'inbox', label: 'Inbox', shortcut: '1' },
@@ -20,8 +27,11 @@ export function Sidebar(props: {
   selectedGuid: string | null;
   onSelect: (guid: string) => void;
   onSelectView: (view: ListView) => void;
+  onRowAction: (guid: string, action: RowAction) => void;
+  onRowContextMenu: (guid: string, x: number, y: number) => void;
   filterQuery: string;
   filterActive: boolean;
+  searching: boolean;
   filterRef: RefObject<HTMLInputElement | null>;
   onFilterChange: (query: string) => void;
   onFilterFocus: () => void;
@@ -29,6 +39,40 @@ export function Sidebar(props: {
   onOpenSpaces: () => void;
   spaceLabel: string;
 }) {
+  const listRef = useRef<HTMLDivElement>(null);
+  const [scrollTop, setScrollTop] = useState(0);
+  const [viewportH, setViewportH] = useState(600);
+
+  useEffect(() => {
+    const el = listRef.current;
+    if (el === null) {
+      return;
+    }
+    const observer = new ResizeObserver(() => setViewportH(el.clientHeight));
+    observer.observe(el);
+    setViewportH(el.clientHeight);
+    return () => observer.disconnect();
+  }, []);
+
+  // Keep the keyboard selection visible (spec §4.1 focus preservation).
+  useEffect(() => {
+    const el = listRef.current;
+    if (el === null || props.selectedGuid === null) {
+      return;
+    }
+    const index = props.conversations.findIndex((c) => c.chatGuid === props.selectedGuid);
+    if (index === -1) {
+      return;
+    }
+    const target = scrollTopFor(index, el.scrollTop, el.clientHeight, ROW_HEIGHT);
+    if (target !== null) {
+      el.scrollTop = target;
+    }
+  }, [props.selectedGuid, props.conversations]);
+
+  const win = computeWindow(scrollTop, viewportH, ROW_HEIGHT, props.conversations.length);
+  const slice = props.conversations.slice(win.start, win.end);
+
   return (
     <aside className="sidebar">
       <div className="sidebar-top" />
@@ -50,7 +94,7 @@ export function Sidebar(props: {
         <input
           ref={props.filterRef}
           className="filter-field"
-          placeholder="Filter"
+          placeholder="Search name, handle, or message"
           value={props.filterQuery}
           onChange={(e) => props.onFilterChange(e.target.value)}
           onFocus={props.onFilterFocus}
@@ -61,7 +105,14 @@ export function Sidebar(props: {
           }}
         />
       )}
-      <div className="conv-list" role="listbox" aria-label="Conversations" tabIndex={-1}>
+      <div
+        ref={listRef}
+        className="conv-list"
+        role="listbox"
+        aria-label="Conversations"
+        tabIndex={-1}
+        onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
+      >
         {props.loading ? (
           <div className="placeholder">Loading…</div>
         ) : props.listError === 'source' ? (
@@ -73,17 +124,25 @@ export function Sidebar(props: {
         ) : props.listError !== null ? (
           <div className="placeholder">Could not load conversations.</div>
         ) : props.conversations.length === 0 ? (
-          <div className="placeholder">{emptyLabel(props.view, props.filterQuery)}</div>
+          <div className="placeholder">
+            {props.searching ? 'Searching…' : emptyLabel(props.view, props.filterQuery)}
+          </div>
         ) : (
-          props.conversations.map((c) => (
-            <ConversationRow
-              key={c.chatGuid}
-              conversation={c}
-              view={props.view}
-              selected={c.chatGuid === props.selectedGuid}
-              onSelect={() => props.onSelect(c.chatGuid)}
-            />
-          ))
+          <>
+            <div style={{ height: win.topPad }} />
+            {slice.map((c) => (
+              <ConversationRow
+                key={c.chatGuid}
+                conversation={c}
+                view={props.view}
+                selected={c.chatGuid === props.selectedGuid}
+                onSelect={() => props.onSelect(c.chatGuid)}
+                onAction={(action) => props.onRowAction(c.chatGuid, action)}
+                onContextMenu={(x, y) => props.onRowContextMenu(c.chatGuid, x, y)}
+              />
+            ))}
+            <div style={{ height: win.bottomPad }} />
+          </>
         )}
       </div>
       <div className="sidebar-bottom">
@@ -101,34 +160,71 @@ function ConversationRow({
   view,
   selected,
   onSelect,
+  onAction,
+  onContextMenu,
 }: {
   conversation: ConversationView;
   view: ListView;
   selected: boolean;
   onSelect: () => void;
+  onAction: (action: RowAction) => void;
+  onContextMenu: (x: number, y: number) => void;
 }) {
   const name = c.displayName ?? c.participantHandles.join(', ');
   const time =
     view === 'snoozed' && c.state.kind === 'snoozed'
       ? `⏰ ${formatTime(c.state.wakeAt)}`
       : formatTime(c.lastActivityAtMs);
+  const actions: { action: RowAction; label: string; glyph: string }[] =
+    c.state.kind === 'inbox'
+      ? [
+          { action: 'snooze', label: 'Snooze…', glyph: '◷' },
+          { action: 'archive', label: 'Archive', glyph: '▣' },
+        ]
+      : [
+          { action: 'snooze', label: 'Snooze…', glyph: '◷' },
+          { action: 'restore', label: 'Restore to Inbox', glyph: '↩' },
+        ];
   return (
-    <button
+    <div
       role="option"
       aria-selected={selected}
       className={`conv-row${selected ? ' selected' : ''}`}
       onClick={onSelect}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        onSelect();
+        onContextMenu(e.clientX, e.clientY);
+      }}
     >
       {c.unread && <span className="unread-dot" />}
       <span className="avatar">{initials(name)}</span>
       <span className="conv-main">
         <span className="conv-name">{name || 'Unknown'}</span>
         <span className="conv-sub">
-          {c.isGroup ? `${c.participantHandles.length} people` : (c.participantHandles[0] ?? '')}
+          {c.previewText ??
+            (c.isGroup ? `${c.participantHandles.length} people` : (c.participantHandles[0] ?? ''))}
         </span>
       </span>
       <span className="conv-time">{time}</span>
-    </button>
+      <span className="row-actions">
+        {actions.map((a) => (
+          <button
+            key={a.action}
+            className="row-action"
+            title={a.label}
+            aria-label={a.label}
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelect();
+              onAction(a.action);
+            }}
+          >
+            {a.glyph}
+          </button>
+        ))}
+      </span>
+    </div>
   );
 }
 
@@ -158,7 +254,11 @@ function formatTime(ms: number): string {
   const now = new Date();
   const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
   const dayDiff = Math.round((startOfDay(now) - startOfDay(then)) / 86_400_000);
-  if (dayDiff <= 0) {
+  if (dayDiff < 0) {
+    // Future (snooze wake times): day plus clock time.
+    return then.toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' });
+  }
+  if (dayDiff === 0) {
     return then.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
   if (dayDiff === 1) {

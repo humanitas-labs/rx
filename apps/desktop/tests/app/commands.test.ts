@@ -17,7 +17,11 @@ import { createCommands, type CommandHandlers } from '@/app/commands';
 import { openMessagesDatabase, type MessagesReader } from '@/apple-messages';
 import { guardCommand } from '@/ipc/registry';
 
-import { buildStandardFixture, type MessagesFixture } from '../apple-messages/fixture';
+import {
+  FIXTURE_BODY_TEXT,
+  buildStandardFixture,
+  type MessagesFixture,
+} from '../apple-messages/fixture';
 
 const wasmPath = fileURLToPath(
   new URL('../../../../packages/apple-body-decoder/dist/decoder.wasm', import.meta.url),
@@ -229,6 +233,67 @@ describe('conversations.search', () => {
       (await invoke('conversations.search', { query: 'plain', space: 'unassigned', limit: 20 }))
         .conversations[0]?.chatGuid,
     ).toBe(DIRECT);
+  });
+});
+
+describe('previews (step 8 row anatomy)', () => {
+  it('previews the latest message, decoding attributed bodies', async () => {
+    const { conversations } = await invoke('conversations.list', {
+      view: 'inbox',
+      space: 'all',
+      limit: 50,
+    });
+    // Direct chat's latest message is attributed-body-only (G-3).
+    expect(conversations.find((c) => c.chatGuid === DIRECT)?.previewText).toBe(FIXTURE_BODY_TEXT);
+    expect(conversations.find((c) => c.chatGuid === GROUP)?.previewText).toBe('photo incoming');
+  });
+
+  it('prefixes outbound previews and falls back for balloon apps', async () => {
+    fixture.addMessage({
+      rowId: 9,
+      guid: 'G-9',
+      chatRowId: 1,
+      text: 'my reply\nsecond line',
+      atMs: T0 + 9_000,
+      fromMe: true,
+    });
+    fixture.addMessage({
+      rowId: 10,
+      guid: 'G-10',
+      chatRowId: 2,
+      balloonBundleId: 'com.example.fixture-balloon',
+      atMs: T0 + 10_000,
+      handleRowId: 2,
+      read: true,
+    });
+    const { conversations } = await invoke('conversations.list', {
+      view: 'inbox',
+      space: 'all',
+      limit: 50,
+    });
+    expect(conversations.find((c) => c.chatGuid === DIRECT)?.previewText).toBe('You: my reply');
+    expect(conversations.find((c) => c.chatGuid === GROUP)?.previewText).toBe('App message');
+  });
+});
+
+describe('decoded-body search (step 8)', () => {
+  it('finds text that exists only inside an attributed body', async () => {
+    // 'Hello rx fixture' appears only in G-3's attributedBody; text is NULL.
+    const result = await invoke('conversations.search', {
+      query: 'Hello rx fixture',
+      space: 'all',
+      limit: 20,
+    });
+    expect(result.conversations.map((c) => c.chatGuid)).toEqual([DIRECT]);
+  });
+
+  it('decoded matches respect the result bound', async () => {
+    const result = await invoke('conversations.search', {
+      query: 'fixture',
+      space: 'all',
+      limit: 1,
+    });
+    expect(result.conversations).toHaveLength(1);
   });
 });
 

@@ -1,7 +1,10 @@
 // Conversation summaries (plan step 4 `conversations`): participants, source
-// unread metadata, and latest inbound identity. Bounded queries only; no
-// message bodies are decoded or returned here.
+// unread metadata, latest inbound identity, and (when a decoder is supplied)
+// the one-line preview of the latest message. Bounded queries only.
 
+import type { BodyDecoder } from '@rx/apple-body-decoder';
+
+import { previewFor, type DecodedTextCache } from '@/apple-messages/previews';
 import { appleMs, type MessagesReader } from '@/apple-messages/reader';
 
 export interface ConversationSummary {
@@ -19,6 +22,8 @@ export interface ConversationSummary {
   lastInboundRowId: number | null;
   /** Source unread metadata: inbound messages with is_read = 0. */
   unreadCount: number;
+  /** One-line preview of the latest message; null without a decoder. */
+  previewText: string | null;
 }
 
 export interface LatestRefs {
@@ -48,7 +53,11 @@ export function latestRefs(reader: MessagesReader, chatGuid: string): LatestRefs
 
 export function listConversationSummaries(
   reader: MessagesReader,
-  options: { limit: number; chatGuids?: string[] | undefined },
+  options: {
+    limit: number;
+    chatGuids?: string[] | undefined;
+    preview?: { decoder: BodyDecoder; cache: DecodedTextCache } | undefined;
+  },
 ): ConversationSummary[] {
   const guidFilter =
     options.chatGuids === undefined
@@ -102,6 +111,32 @@ export function listConversationSummaries(
       chatRowId,
     );
 
+    let previewText: string | null = null;
+    if (options.preview !== undefined) {
+      const last = reader.get(
+        `SELECT m.ROWID AS row_id, m.text AS text, m.attributedBody AS attributed_body,
+                m.item_type AS item_type, m.associated_message_type AS associated_type,
+                m.balloon_bundle_id AS balloon_bundle_id,
+                m.cache_has_attachments AS has_attachments, m.is_from_me AS is_from_me
+         FROM message m
+         WHERE m.ROWID = ?`,
+        Number(chat['last_message_row_id']),
+      );
+      if (last !== undefined) {
+        previewText = previewFor(options.preview.decoder, options.preview.cache, {
+          rowId: Number(last['row_id']),
+          text: last['text'] === null ? null : String(last['text']),
+          attributedBody: last['attributed_body'] instanceof Uint8Array ? last['attributed_body'] : null,
+          itemType: Number(last['item_type'] ?? 0),
+          associatedType: Number(last['associated_type'] ?? 0),
+          balloonBundleId:
+            last['balloon_bundle_id'] === null ? null : String(last['balloon_bundle_id']),
+          hasAttachments: Number(last['has_attachments']) === 1,
+          isFromMe: Number(last['is_from_me']) === 1,
+        });
+      }
+    }
+
     // style 43 is a group chat, 45 a one-to-one chat.
     return {
       chatGuid: String(chat['chat_guid']),
@@ -113,6 +148,7 @@ export function listConversationSummaries(
       lastInboundGuid: lastInbound ? String(lastInbound['guid']) : null,
       lastInboundRowId: lastInbound ? Number(lastInbound['row_id']) : null,
       unreadCount: Number(unread?.['unread'] ?? 0),
+      previewText,
     };
   });
 }

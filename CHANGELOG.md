@@ -1,5 +1,33 @@
 # Changelog
 
+## 0.6.0 — 2026.08.24
+
+Inbox, Snoozed, Archive, and search to design (plan step 8).
+
+- Conversation rows carry the designed anatomy: one-line preview of the
+  latest message (attributed bodies decoded through a shared cache, outbound
+  prefixed `You:`, typed fallbacks for reactions, group events, app messages,
+  and attachments), fixed-height rows, the 4×12 hover bar, and future wake
+  times rendered as day + clock.
+- The sidebar list is virtualized (pure window arithmetic, spacer heights,
+  selection kept scrolled into view) and requests up to 500 conversations.
+- Triage from every path: hover glyphs and a right-click context menu on
+  rows, an actions menu in the reader header, and the palette — archive,
+  snooze, restore, and move-to-Space, all with no optimistic disappearance.
+- Snooze picker overlay: quick presets (1 hour, this evening, tomorrow
+  morning, next Monday — all strictly future) plus a custom local date-time
+  with validation; `Snooze…` and `Move to Space…` palette commands complete
+  the keyboard paths.
+- Space management in the switcher: inline rename with duplicate-name
+  errors, up/down reorder, and delete behind an inline confirm (members
+  return to Unassigned; workflow state untouched).
+- Search now runs against the source — group names, participant handles,
+  plain text, and a bounded scan (2,000 most recent) of decoded
+  attributed-body-only messages — debounced with stale-response
+  cancellation, scoped to the active Space and view.
+- Selection preservation: when triage removes the selected row, selection
+  lands on its neighbor instead of jumping to the top.
+
 ## 0.5.0 — 2026.08.24
 
 Onboarding and the application shell (plan step 7).

@@ -57,6 +57,8 @@ export const conversationViewSchema = z.object({
   state: workflowStateSchema,
   /** Space assignment; null is Unassigned (spec §3.6). */
   spaceId: z.number().int().nullable(),
+  /** One-line preview of the latest message; null when nothing previews. */
+  previewText: z.string().nullable(),
 });
 
 export const spaceSchema = z.object({

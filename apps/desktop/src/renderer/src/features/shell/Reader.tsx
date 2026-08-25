@@ -12,6 +12,8 @@ export function Reader(props: {
   composerRef: RefObject<HTMLTextAreaElement | null>;
   draftsRef: MutableRefObject<Map<string, string>>;
   onComposerFocus: () => void;
+  /** Open the conversation actions menu (triage, move) at this position. */
+  onHeaderMenu: (x: number, y: number) => void;
   onSeen: (chatGuid: string) => void;
 }) {
   const chatGuid = props.conversation?.chatGuid ?? null;
@@ -63,7 +65,17 @@ export function Reader(props: {
     <main className="reader">
       <div className="reader-header">
         <span>{name}</span>
-        <span style={{ color: 'var(--text-faint)' }}>›</span>
+        <button
+          className="header-menu"
+          title="Conversation actions"
+          aria-label="Conversation actions"
+          onClick={(e) => {
+            const rect = e.currentTarget.getBoundingClientRect();
+            props.onHeaderMenu(rect.left, rect.bottom + 4);
+          }}
+        >
+          ⋯
+        </button>
       </div>
       <div className="thread">
         {threadError ? (

@@ -1,15 +1,18 @@
-// The application shell (plan step 7): one mode state machine, one command
-// dispatcher, one window-level key listener feeding the pure keyboard core
-// (docs/spec/keyboard.md §6). Feature components render state and invoke
-// commands; none install their own shortcut handlers.
+// The application shell (plan step 7, extended in step 8): one mode state
+// machine, one command dispatcher, one window-level key listener feeding the
+// pure keyboard core (docs/spec/keyboard.md §6). Feature components render
+// state and invoke commands; none install their own shortcut handlers.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import type { ConversationView, ListView, SpaceScope, SpaceView } from '@rx/contract';
 
+import { ContextMenu, type MenuItem } from '@/features/conversations/ContextMenu';
+import { MoveToSpace } from '@/features/conversations/MoveToSpace';
+import { SnoozePicker } from '@/features/conversations/SnoozePicker';
 import { CommandPalette } from '@/features/shell/CommandPalette';
 import { Reader } from '@/features/shell/Reader';
-import { Sidebar } from '@/features/shell/Sidebar';
+import { Sidebar, type RowAction } from '@/features/shell/Sidebar';
 import { SpaceSwitcher } from '@/features/shell/SpaceSwitcher';
 import {
   CHORD_WINDOW_MS,
@@ -18,18 +21,10 @@ import {
   type Mode,
 } from '@/keyboard/core';
 
-type OverlayKind = 'none' | 'palette' | 'spaces';
+type OverlayKind = 'none' | 'palette' | 'spaces' | 'snooze' | 'move';
 
-export interface ShellSnapshot {
-  mode: Mode;
-  view: ListView;
-  space: SpaceScope;
-  spaces: SpaceView[];
-  visible: ConversationView[];
-  selectedGuid: string | null;
-  filterQuery: string;
-  overlay: OverlayKind;
-}
+/** How long a search keystroke settles before the source query runs. */
+const SEARCH_DEBOUNCE_MS = 150;
 
 export function Shell() {
   const [mode, setMode] = useState<Mode>('navigation');
@@ -37,10 +32,14 @@ export function Shell() {
   const [space, setSpace] = useState<SpaceScope>('all');
   const [spaces, setSpaces] = useState<SpaceView[]>([]);
   const [conversations, setConversations] = useState<ConversationView[] | null>(null);
+  const [searchResults, setSearchResults] = useState<ConversationView[] | null>(null);
+  const [searching, setSearching] = useState(false);
   const [listError, setListError] = useState<string | null>(null);
   const [selectedGuid, setSelectedGuid] = useState<string | null>(null);
   const [filterQuery, setFilterQuery] = useState('');
   const [overlay, setOverlay] = useState<OverlayKind>('none');
+  const [overlayTarget, setOverlayTarget] = useState<string | null>(null);
+  const [menu, setMenu] = useState<{ guid: string; x: number; y: number } | null>(null);
   const [chordPending, setChordPending] = useState(false);
   const [refreshTick, setRefreshTick] = useState(0);
 
@@ -48,17 +47,20 @@ export function Shell() {
   const chordTimer = useRef<number | null>(null);
   const draftsRef = useRef(new Map<string, string>());
   const selectionMemory = useRef(new Map<string, string>());
+  const selectedIndexRef = useRef(0);
+  const searchGeneration = useRef(0);
   const filterRef = useRef<HTMLInputElement>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
 
   const refresh = useCallback(() => setRefreshTick((t) => t + 1), []);
+  const query = filterQuery.trim();
 
   // ---- data loading -------------------------------------------------------
 
   useEffect(() => {
     let cancelled = false;
     void window.rx
-      .invoke('conversations.list', { view, space, limit: 100 })
+      .invoke('conversations.list', { view, space, limit: 500 })
       .then((response) => {
         if (!cancelled) {
           setConversations(response.conversations);
@@ -80,45 +82,72 @@ export function Shell() {
     void window.rx.invoke('spaces.list', {}).then((r) => setSpaces(r.spaces));
   }, [refreshTick]);
 
-  const visible = useMemo(() => {
-    if (conversations === null) {
-      return [];
+  // Source-side search: names, handles, plain and decoded message text.
+  // Debounced; a generation counter cancels anything stale (spec §4.2).
+  useEffect(() => {
+    if (query.length === 0) {
+      setSearchResults(null);
+      setSearching(false);
+      return;
     }
-    const q = filterQuery.trim().toLowerCase();
-    if (q.length === 0) {
-      return conversations;
-    }
-    return conversations.filter(
-      (c) =>
-        (c.displayName ?? '').toLowerCase().includes(q) ||
-        c.participantHandles.some((h) => h.toLowerCase().includes(q)),
-    );
-  }, [conversations, filterQuery]);
+    setSearching(true);
+    const generation = ++searchGeneration.current;
+    const timer = window.setTimeout(() => {
+      void window.rx
+        .invoke('conversations.search', { query, space, limit: 100 })
+        .then((response) => {
+          if (generation === searchGeneration.current) {
+            setSearchResults(response.conversations.filter((c) => c.state.kind === view));
+            setSearching(false);
+          }
+        })
+        .catch(() => {
+          if (generation === searchGeneration.current) {
+            setSearchResults([]);
+            setSearching(false);
+          }
+        });
+    }, SEARCH_DEBOUNCE_MS);
+    return () => window.clearTimeout(timer);
+  }, [query, space, view, refreshTick]);
 
-  // Selection memory per (Space, view); nearest-row fallback (spec §4.1).
+  const visible = useMemo(() => {
+    if (query.length > 0) {
+      return searchResults ?? [];
+    }
+    return conversations ?? [];
+  }, [query, searchResults, conversations]);
+
+  // Selection memory per (Space, view) plus nearest-row fallback, so triage
+  // that removes the selected row lands the selection on its neighbor
+  // (spec §4.1, plan step 8 focus preservation).
   const memoryKey = `${String(space)}|${view}`;
   useEffect(() => {
     if (conversations === null) {
       return;
     }
-    if (selectedGuid !== null && visible.some((c) => c.chatGuid === selectedGuid)) {
+    const index = visible.findIndex((c) => c.chatGuid === selectedGuid);
+    if (selectedGuid !== null && index !== -1) {
       selectionMemory.current.set(memoryKey, selectedGuid);
+      selectedIndexRef.current = index;
       return;
     }
     const remembered = selectionMemory.current.get(memoryKey);
+    const nearest = visible[Math.min(selectedIndexRef.current, visible.length - 1)];
     const fallback =
       remembered !== undefined && visible.some((c) => c.chatGuid === remembered)
         ? remembered
-        : (visible[0]?.chatGuid ?? null);
+        : (nearest?.chatGuid ?? visible[0]?.chatGuid ?? null);
     setSelectedGuid(fallback);
   }, [conversations, visible, selectedGuid, memoryKey]);
 
   // ---- mode helpers -------------------------------------------------------
 
   const openOverlay = useCallback(
-    (kind: Exclude<OverlayKind, 'none'>) => {
+    (kind: Exclude<OverlayKind, 'none'>, target: string | null = null) => {
       prevMode.current = mode === 'overlay' ? prevMode.current : mode;
       setOverlay(kind);
+      setOverlayTarget(target);
       setMode('overlay');
     },
     [mode],
@@ -126,6 +155,7 @@ export function Shell() {
 
   const closeOverlay = useCallback(() => {
     setOverlay('none');
+    setOverlayTarget(null);
     setMode(prevMode.current);
   }, []);
 
@@ -162,24 +192,29 @@ export function Shell() {
   }, []);
 
   const triage = useCallback(
-    (action: 'archive' | 'restore' | { snoozeUntil: number }) => {
-      if (selectedGuid === null) {
+    (action: 'archive' | 'restore' | { snoozeUntil: number }, guid?: string) => {
+      const chatGuid = guid ?? selectedGuid;
+      if (chatGuid === null) {
         return;
       }
       const call =
         action === 'archive'
-          ? window.rx.invoke('workflow.archive', { chatGuid: selectedGuid })
+          ? window.rx.invoke('workflow.archive', { chatGuid })
           : action === 'restore'
-            ? window.rx.invoke('workflow.restore', { chatGuid: selectedGuid })
-            : window.rx.invoke('workflow.snooze', {
-                chatGuid: selectedGuid,
-                wakeAt: action.snoozeUntil,
-              });
+            ? window.rx.invoke('workflow.restore', { chatGuid })
+            : window.rx.invoke('workflow.snooze', { chatGuid, wakeAt: action.snoozeUntil });
       // No optimistic disappearance: the row leaves only after the rx write
       // committed (spec/v0.md §4.5).
       void call.then(refresh);
     },
     [selectedGuid, refresh],
+  );
+
+  const assign = useCallback(
+    (chatGuid: string, spaceId: number | null) => {
+      void window.rx.invoke('spaces.assign', { chatGuid, spaceId }).then(refresh);
+    },
+    [refresh],
   );
 
   const runCommand = useCallback(
@@ -224,10 +259,20 @@ export function Shell() {
           return triage('archive');
         case 'conv.restore':
           return triage('restore');
+        case 'conv.snooze':
+          if (selectedGuid !== null) {
+            openOverlay('snooze', selectedGuid);
+          }
+          return;
         case 'conv.snoozeHour':
           return triage({ snoozeUntil: Date.now() + 3_600_000 });
         case 'conv.snoozeTomorrow':
           return triage({ snoozeUntil: nextMorning() });
+        case 'conv.moveToSpace':
+          if (selectedGuid !== null) {
+            openOverlay('move', selectedGuid);
+          }
+          return;
         default:
           if (id.startsWith('space.number.')) {
             const slot = Number(id.slice('space.number.'.length)) - 2;
@@ -276,6 +321,7 @@ export function Shell() {
         undefined,
         hasSelection ? null : 'no conversation selected',
       ),
+      entry('conv.snooze', 'Snooze…', undefined, hasSelection ? null : 'no conversation selected'),
       entry(
         'conv.snoozeHour',
         'Snooze for 1 hour',
@@ -294,10 +340,62 @@ export function Shell() {
         undefined,
         hasSelection && inTriageableView ? null : 'nothing to restore here',
       ),
+      entry(
+        'conv.moveToSpace',
+        'Move to Space…',
+        undefined,
+        hasSelection ? null : 'no conversation selected',
+      ),
       entry('composer.send', 'Send message', '⌘↩', 'sending arrives with delivery verification'),
       entry('compose.new', 'New conversation', undefined, 'new conversations arrive in a later step'),
     ];
   }, [selectedGuid, view, spaces, runCommand]);
+
+  // ---- row/menu affordances ----------------------------------------------
+
+  const onRowAction = useCallback(
+    (guid: string, action: RowAction) => {
+      if (action === 'snooze') {
+        openOverlay('snooze', guid);
+      } else {
+        triage(action, guid);
+      }
+    },
+    [openOverlay, triage],
+  );
+
+  const menuItemsFor = useCallback(
+    (guid: string): MenuItem[] => {
+      const conversation = visible.find((c) => c.chatGuid === guid) ?? null;
+      const state = conversation?.state.kind ?? 'inbox';
+      const items: MenuItem[] = [];
+      if (state === 'inbox') {
+        items.push({ label: 'Archive', run: () => triage('archive', guid) });
+      } else {
+        items.push({ label: 'Restore to Inbox', run: () => triage('restore', guid) });
+      }
+      items.push({ label: 'Snooze…', run: () => openOverlay('snooze', guid) });
+      items.push({
+        label: 'Move to Space…',
+        separator: true,
+        run: () => openOverlay('move', guid),
+      });
+      for (const s of spaces) {
+        items.push({
+          label: s.name,
+          checked: conversation?.spaceId === s.id,
+          run: () => assign(guid, s.id),
+        });
+      }
+      items.push({
+        label: 'Unassigned',
+        checked: conversation !== null && conversation.spaceId === null,
+        run: () => assign(guid, null),
+      });
+      return items;
+    },
+    [visible, spaces, triage, openOverlay, assign],
+  );
 
   // ---- window key handling ------------------------------------------------
 
@@ -361,6 +459,12 @@ export function Shell() {
   // ---- render -------------------------------------------------------------
 
   const selected = visible.find((c) => c.chatGuid === selectedGuid) ?? null;
+  const overlayConversation =
+    overlayTarget === null ? selected : (visible.find((c) => c.chatGuid === overlayTarget) ?? null);
+  const overlayName =
+    overlayConversation === null
+      ? ''
+      : (overlayConversation.displayName ?? overlayConversation.participantHandles.join(', '));
 
   return (
     <div className="shell">
@@ -372,8 +476,11 @@ export function Shell() {
         selectedGuid={selectedGuid}
         onSelect={(guid) => setSelectedGuid(guid)}
         onSelectView={(v) => setView(v)}
+        onRowAction={onRowAction}
+        onRowContextMenu={(guid, x, y) => setMenu({ guid, x, y })}
         filterQuery={filterQuery}
         filterActive={mode === 'filter' || filterQuery.length > 0}
+        searching={searching}
         filterRef={filterRef}
         onFilterChange={setFilterQuery}
         onFilterFocus={() => setMode('filter')}
@@ -386,6 +493,11 @@ export function Shell() {
         composerRef={composerRef}
         draftsRef={draftsRef}
         onComposerFocus={() => setMode('insert')}
+        onHeaderMenu={(x, y) => {
+          if (selectedGuid !== null) {
+            setMenu({ guid: selectedGuid, x, y });
+          }
+        }}
         onSeen={(guid) =>
           setConversations(
             (rows) =>
@@ -393,6 +505,14 @@ export function Shell() {
           )
         }
       />
+      {menu !== null && (
+        <ContextMenu
+          x={menu.x}
+          y={menu.y}
+          items={menuItemsFor(menu.guid)}
+          onClose={() => setMenu(null)}
+        />
+      )}
       {overlay === 'spaces' && (
         <SpaceSwitcher
           spaces={spaces}
@@ -401,7 +521,31 @@ export function Shell() {
             selectSpace(scope);
             closeOverlay();
           }}
-          onCreated={() => refresh()}
+          onChanged={() => refresh()}
+          onClose={closeOverlay}
+        />
+      )}
+      {overlay === 'snooze' && overlayTarget !== null && (
+        <SnoozePicker
+          conversationName={overlayName}
+          onSnooze={(wakeAt) => {
+            const guid = overlayTarget;
+            closeOverlay();
+            triage({ snoozeUntil: wakeAt }, guid);
+          }}
+          onClose={closeOverlay}
+        />
+      )}
+      {overlay === 'move' && overlayTarget !== null && (
+        <MoveToSpace
+          conversationName={overlayName}
+          spaces={spaces}
+          currentSpaceId={overlayConversation?.spaceId ?? null}
+          onAssign={(spaceId) => {
+            const guid = overlayTarget;
+            closeOverlay();
+            assign(guid, spaceId);
+          }}
           onClose={closeOverlay}
         />
       )}

@@ -21,6 +21,8 @@ export interface SourceConversationSummary {
   lastActivityAtMs: number;
   lastInbound: MessageRef | null;
   sourceUnreadCount: number;
+  /** One-line preview of the latest message; null when nothing previews. */
+  previewText: string | null;
 }
 
 /** Workflow state as views consume it: no watermark internals. */
@@ -37,6 +39,7 @@ export interface ConversationView {
   sourceUnreadCount: number;
   state: ViewWorkflowState;
   spaceId: number | null;
+  previewText: string | null;
 }
 
 export type ListView = 'inbox' | 'snoozed' | 'archived';
@@ -69,6 +72,7 @@ export function composeConversationViews(
       sourceUnreadCount: summary.sourceUnreadCount,
       state: toViewState(effective),
       spaceId: spaceByChat.get(summary.chatGuid) ?? null,
+      previewText: summary.previewText,
     };
   });
 }

@@ -20,6 +20,7 @@ import {
   type ConversationSummary,
 } from '@/apple-messages/conversations';
 import { pageMessages } from '@/apple-messages/messages';
+import type { DecodedTextCache } from '@/apple-messages/previews';
 import type { MessagesReader } from '@/apple-messages/reader';
 import { searchChatGuids } from '@/apple-messages/search';
 import type { CommandHandler } from '@/ipc/registry';
@@ -40,6 +41,9 @@ const SOURCE_WINDOW = 500;
 
 export function createCommands(services: AppServices): CommandHandlers {
   const now = services.now ?? Date.now;
+  // Shared decode cache: previews and body search never re-decode a blob.
+  const decodedTextCache: DecodedTextCache = new Map();
+  const preview = () => ({ decoder: services.decoder, cache: decodedTextCache });
 
   function requireReader(): MessagesReader {
     if (services.reader === null) {
@@ -61,18 +65,21 @@ export function createCommands(services: AppServices): CommandHandlers {
     'app.capabilities': () => checkCapabilities(services.messagesDbPath),
 
     'conversations.list': ({ view, space, limit }) => {
-      const summaries = listConversationSummaries(requireReader(), { limit: SOURCE_WINDOW });
+      const summaries = listConversationSummaries(requireReader(), {
+        limit: SOURCE_WINDOW,
+        preview: preview(),
+      });
       const selected = selectConversations(composeViews(summaries), view, space);
       return { conversations: selected.slice(0, limit) };
     },
 
     'conversations.search': ({ query, space, limit }) => {
       const reader = requireReader();
-      const chatGuids = searchChatGuids(reader, query, limit);
+      const chatGuids = searchChatGuids(reader, query, limit, preview());
       if (chatGuids.length === 0) {
         return { conversations: [] };
       }
-      const summaries = listConversationSummaries(reader, { limit, chatGuids });
+      const summaries = listConversationSummaries(reader, { limit, chatGuids, preview: preview() });
       const scoped = composeViews(summaries).filter((row) => inScope(row.spaceId, space));
       return { conversations: scoped.sort((a, b) => b.lastActivityAtMs - a.lastActivityAtMs) };
     },
@@ -126,6 +133,7 @@ function toSourceSummary(summary: ConversationSummary): SourceConversationSummar
         ? null
         : { guid: summary.lastInboundGuid, rowId: summary.lastInboundRowId },
     sourceUnreadCount: summary.unreadCount,
+    previewText: summary.previewText,
   };
 }
 

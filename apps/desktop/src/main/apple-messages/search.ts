@@ -1,12 +1,24 @@
-// Conversation search (plan step 6 read model): match group names,
-// participant handles, and plain message text. Attributed-body-only messages
-// are not searched yet — decoded-body indexing is a step 8 concern
-// (docs/spec/v0.md §4.2). Bounded results; the query never logs.
+// Conversation search (plan steps 6 + 8): match group names, participant
+// handles, plain message text, and — bounded — decoded attributed bodies.
+// Attributed-body-only messages have no `text` column to LIKE over, so the
+// most recent BODY_SCAN_LIMIT of them are decoded (through the shared cache)
+// and matched in process. Bounded results; the query never logs.
 
+import type { BodyDecoder } from '@rx/apple-body-decoder';
+
+import { cachedBodyText, type DecodedTextCache } from '@/apple-messages/previews';
 import type { MessagesReader } from '@/apple-messages/reader';
 
+/** How many recent attributed-body-only messages one search decodes. */
+export const BODY_SCAN_LIMIT = 2_000;
+
 /** Chat GUIDs matching the query, most recently active first. */
-export function searchChatGuids(reader: MessagesReader, query: string, limit: number): string[] {
+export function searchChatGuids(
+  reader: MessagesReader,
+  query: string,
+  limit: number,
+  bodies?: { decoder: BodyDecoder; cache: DecodedTextCache },
+): string[] {
   const pattern = `%${escapeLike(query)}%`;
   const rows = reader.all(
     `SELECT c.guid AS chat_guid, MAX(m.ROWID) AS last_row_id
@@ -32,7 +44,57 @@ export function searchChatGuids(reader: MessagesReader, query: string, limit: nu
     pattern,
     limit,
   );
-  return rows.map((row) => String(row['chat_guid']));
+  const guids = rows.map((row) => String(row['chat_guid']));
+
+  if (bodies === undefined) {
+    return guids;
+  }
+  const fromBodies = searchDecodedBodies(reader, bodies, query, limit);
+  for (const guid of fromBodies) {
+    if (!guids.includes(guid)) {
+      guids.push(guid);
+    }
+  }
+  return guids.slice(0, limit);
+}
+
+/** Chats whose recent attributed-body-only messages contain the query. */
+function searchDecodedBodies(
+  reader: MessagesReader,
+  bodies: { decoder: BodyDecoder; cache: DecodedTextCache },
+  query: string,
+  limit: number,
+): string[] {
+  const rows = reader.all(
+    `SELECT m.ROWID AS row_id, m.attributedBody AS attributed_body, c.guid AS chat_guid
+     FROM message m
+     JOIN chat_message_join cmj ON cmj.message_id = m.ROWID
+     JOIN chat c ON c.ROWID = cmj.chat_id
+     WHERE m.text IS NULL AND m.attributedBody IS NOT NULL
+     ORDER BY m.ROWID DESC
+     LIMIT ?`,
+    BODY_SCAN_LIMIT,
+  );
+  const needle = query.toLowerCase();
+  const matched: string[] = [];
+  for (const row of rows) {
+    const chatGuid = String(row['chat_guid']);
+    if (matched.includes(chatGuid)) {
+      continue;
+    }
+    const blob = row['attributed_body'];
+    if (!(blob instanceof Uint8Array)) {
+      continue;
+    }
+    const text = cachedBodyText(bodies.decoder, bodies.cache, Number(row['row_id']), blob);
+    if (text !== null && text.toLowerCase().includes(needle)) {
+      matched.push(chatGuid);
+      if (matched.length >= limit) {
+        break;
+      }
+    }
+  }
+  return matched;
 }
 
 function escapeLike(query: string): string {
