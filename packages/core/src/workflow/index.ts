@@ -1,3 +1,3 @@
-export * from '@/workflow/rules';
-export * from '@/workflow/migrations';
-export * from '@/workflow/store';
+export * from './rules';
+export * from './migrations';
+export * from './store';

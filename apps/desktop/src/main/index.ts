@@ -1,7 +1,23 @@
+import { mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { BrowserWindow, app } from 'electron';
 
-import { registerCommand, sendEvent } from '@/ipc';
+import { createDecoder } from '@rx/apple-body-decoder';
+import { openWorkflowStore } from '@rx/core';
+import decoderWasmPath from '../../../../packages/apple-body-decoder/dist/decoder.wasm?asset';
+
+import { createCommands } from '@/app/commands';
+import {
+  checkCapabilities,
+  defaultMessagesDatabasePath,
+  openMessagesDatabase,
+} from '@/apple-messages';
+import { registerCommand, registerCommands, sendEvent } from '@/ipc';
+
+// One name in dev and packaged builds so userData — and the workflow
+// database under it — resolves to the same place (~/Library/Application
+// Support/rx) either way.
+app.setName('rx');
 
 const startedAt = Date.now();
 
@@ -32,12 +48,28 @@ function createWindow(): BrowserWindow {
   return window;
 }
 
-void app.whenReady().then(() => {
+void app.whenReady().then(async () => {
   registerCommand('app.status', () => ({
     version: app.getVersion(),
     platform: process.platform,
     startedAt,
   }));
+
+  const messagesDbPath = defaultMessagesDatabasePath();
+  const capabilities = checkCapabilities(messagesDbPath);
+  const sourceUsable = capabilities.database === 'ok' && capabilities.missingTables.length === 0;
+
+  const userData = app.getPath('userData');
+  mkdirSync(userData, { recursive: true });
+
+  registerCommands(
+    createCommands({
+      reader: sourceUsable ? openMessagesDatabase(messagesDbPath) : null,
+      decoder: await createDecoder(readFileSync(decoderWasmPath)),
+      store: openWorkflowStore(join(userData, 'workflow.db')),
+      messagesDbPath,
+    }),
+  );
 
   const window = createWindow();
 

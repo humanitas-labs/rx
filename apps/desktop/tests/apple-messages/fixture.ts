@@ -132,7 +132,13 @@ export class MessagesFixture {
   addAttachment(
     rowId: number,
     messageRowId: number,
-    meta: { guid: string; filename?: string; transferName?: string; mimeType?: string; bytes?: number },
+    meta: {
+      guid: string;
+      filename?: string;
+      transferName?: string;
+      mimeType?: string;
+      bytes?: number;
+    },
   ) {
     this.db
       .prepare(
@@ -171,16 +177,80 @@ export function buildStandardFixture(dir: string): MessagesFixture {
   f.joinHandle(2, 2);
 
   // Direct chat: plain text in, text out, attributedBody in (unread).
-  f.addMessage({ rowId: 1, guid: 'G-1', chatRowId: 1, text: 'plain inbound', atMs: T0, handleRowId: 1, read: true });
-  f.addMessage({ rowId: 2, guid: 'G-2', chatRowId: 1, text: 'outbound reply', atMs: T0 + 1_000, fromMe: true });
-  f.addMessage({ rowId: 3, guid: 'G-3', chatRowId: 1, attributedBody: fixtureAttributedBody(), atMs: T0 + 2_000, handleRowId: 1 });
+  f.addMessage({
+    rowId: 1,
+    guid: 'G-1',
+    chatRowId: 1,
+    text: 'plain inbound',
+    atMs: T0,
+    handleRowId: 1,
+    read: true,
+  });
+  f.addMessage({
+    rowId: 2,
+    guid: 'G-2',
+    chatRowId: 1,
+    text: 'outbound reply',
+    atMs: T0 + 1_000,
+    fromMe: true,
+  });
+  f.addMessage({
+    rowId: 3,
+    guid: 'G-3',
+    chatRowId: 1,
+    attributedBody: fixtureAttributedBody(),
+    atMs: T0 + 2_000,
+    handleRowId: 1,
+  });
 
   // Group chat: name change, tapback, balloon app, edited text, attachment.
-  f.addMessage({ rowId: 4, guid: 'G-4', chatRowId: 2, itemType: 2, groupTitle: 'Fixture Group', atMs: T0 + 3_000, handleRowId: 2, read: true });
-  f.addMessage({ rowId: 5, guid: 'G-5', chatRowId: 2, associatedGuid: 'p:0/G-2', associatedType: 2000, atMs: T0 + 4_000, handleRowId: 1, read: true });
-  f.addMessage({ rowId: 6, guid: 'G-6', chatRowId: 2, balloonBundleId: 'com.example.fixture-balloon', atMs: T0 + 5_000, handleRowId: 2, read: true });
-  f.addMessage({ rowId: 7, guid: 'G-7', chatRowId: 2, text: 'edited outbound', atMs: T0 + 6_000, fromMe: true, editedAtMs: T0 + 7_000 });
-  f.addMessage({ rowId: 8, guid: 'G-8', chatRowId: 2, text: 'photo incoming', atMs: T0 + 8_000, handleRowId: 1, hasAttachments: true });
+  f.addMessage({
+    rowId: 4,
+    guid: 'G-4',
+    chatRowId: 2,
+    itemType: 2,
+    groupTitle: 'Fixture Group',
+    atMs: T0 + 3_000,
+    handleRowId: 2,
+    read: true,
+  });
+  f.addMessage({
+    rowId: 5,
+    guid: 'G-5',
+    chatRowId: 2,
+    associatedGuid: 'p:0/G-2',
+    associatedType: 2000,
+    atMs: T0 + 4_000,
+    handleRowId: 1,
+    read: true,
+  });
+  f.addMessage({
+    rowId: 6,
+    guid: 'G-6',
+    chatRowId: 2,
+    balloonBundleId: 'com.example.fixture-balloon',
+    atMs: T0 + 5_000,
+    handleRowId: 2,
+    read: true,
+  });
+  f.addMessage({
+    rowId: 7,
+    guid: 'G-7',
+    chatRowId: 2,
+    text: 'edited outbound',
+    atMs: T0 + 6_000,
+    fromMe: true,
+    editedAtMs: T0 + 7_000,
+  });
+  f.addMessage({
+    rowId: 8,
+    guid: 'G-8',
+    chatRowId: 2,
+    text: 'photo incoming',
+    atMs: T0 + 8_000,
+    handleRowId: 1,
+    hasAttachments: true,
+  });
   f.addAttachment(1, 8, {
     guid: 'A-1',
     filename: '~/Library/Messages/Attachments/ab/cd/fixture-photo.heic',

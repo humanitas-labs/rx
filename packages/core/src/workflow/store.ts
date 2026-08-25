@@ -5,15 +5,9 @@
 
 import { DatabaseSync } from 'node:sqlite';
 
-import type {
-  ChatGuid,
-  MessageRef,
-  Space,
-  SpaceAssignment,
-  WorkflowState,
-} from '@/types';
-import { WORKFLOW_MIGRATIONS } from '@/workflow/migrations';
-import { reconcile } from '@/workflow/rules';
+import type { ChatGuid, MessageRef, Space, SpaceAssignment, WorkflowState } from '../types';
+import { WORKFLOW_MIGRATIONS } from './migrations';
+import { reconcile } from './rules';
 
 export interface StoredConversation {
   chatGuid: ChatGuid;
@@ -74,8 +68,7 @@ export function openWorkflowStore(path: string): WorkflowStore {
 
   function readRow(chat: ChatGuid): StateRow | undefined {
     return db.prepare('SELECT * FROM conversation_state WHERE chat_guid = ?').get(chat) as
-      | StateRow
-      | undefined;
+      StateRow | undefined;
   }
 
   function writeState(
@@ -296,15 +289,13 @@ function createSpacesApi(db: DatabaseSync, tx: <T>(work: () => T) => T) {
 
   function nameTaken(name: string, exceptId?: number): boolean {
     const row = db.prepare('SELECT id FROM spaces WHERE name = ?').get(name) as
-      | { id: number }
-      | undefined;
+      { id: number } | undefined;
     return row !== undefined && row.id !== exceptId;
   }
 
   function byId(id: number): SpaceRow | undefined {
     return db.prepare('SELECT id, name, position FROM spaces WHERE id = ?').get(id) as
-      | SpaceRow
-      | undefined;
+      SpaceRow | undefined;
   }
 
   return {

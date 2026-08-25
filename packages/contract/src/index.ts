@@ -33,6 +33,113 @@ export type Span = z.infer<typeof spanSchema>;
 export type DecodedBody = z.infer<typeof decodedBodySchema>;
 
 // ---------------------------------------------------------------------------
+// Conversation views (plan step 6)
+//
+// What the renderer sees: source summary joined with rx workflow state and
+// Space assignment. Watermark internals never cross this boundary.
+
+export const workflowStateSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('inbox') }),
+  z.object({ kind: z.literal('archived') }),
+  z.object({ kind: z.literal('snoozed'), wakeAt: z.number().int() }),
+]);
+
+export const conversationViewSchema = z.object({
+  chatGuid: z.string(),
+  displayName: z.string().nullable(),
+  participantHandles: z.array(z.string()),
+  isGroup: z.boolean(),
+  lastActivityAtMs: z.number(),
+  /** rx unread: a source inbound exists past the rx seen watermark. */
+  unread: z.boolean(),
+  /** Messages.app's own unread count, shown for reference only. */
+  sourceUnreadCount: z.number().int().nonnegative(),
+  state: workflowStateSchema,
+  /** Space assignment; null is Unassigned (spec §3.6). */
+  spaceId: z.number().int().nullable(),
+});
+
+export const spaceSchema = z.object({
+  id: z.number().int(),
+  name: z.string(),
+  position: z.number().int().nonnegative(),
+});
+
+/** Which conversations a list is scoped to: All, Unassigned, or one Space. */
+export const spaceScopeSchema = z.union([z.enum(['all', 'unassigned']), z.number().int()]);
+
+export const listViewSchema = z.enum(['inbox', 'snoozed', 'archived']);
+
+export type WorkflowStateView = z.infer<typeof workflowStateSchema>;
+export type ConversationView = z.infer<typeof conversationViewSchema>;
+export type SpaceView = z.infer<typeof spaceSchema>;
+export type SpaceScope = z.infer<typeof spaceScopeSchema>;
+export type ListView = z.infer<typeof listViewSchema>;
+
+// ---------------------------------------------------------------------------
+// Thread items (plan step 4 classification, renderer-facing shape)
+
+export const messageBaseSchema = z.object({
+  guid: z.string(),
+  rowId: z.number().int(),
+  isFromMe: z.boolean(),
+  senderHandle: z.string().nullable(),
+  sentAtMs: z.number(),
+});
+
+export const messageItemSchema = z.discriminatedUnion('kind', [
+  z.object({
+    kind: z.literal('text'),
+    base: messageBaseSchema,
+    text: z.string(),
+    spans: z.array(spanSchema),
+    editedAtMs: z.number().nullable(),
+    hasAttachments: z.boolean(),
+  }),
+  z.object({
+    kind: z.literal('tapback'),
+    base: messageBaseSchema,
+    tapbackType: z.number().int(),
+    added: z.boolean(),
+    targetMessageGuid: z.string().nullable(),
+  }),
+  z.object({
+    kind: z.literal('group-event'),
+    base: messageBaseSchema,
+    itemType: z.number().int(),
+    groupTitle: z.string().nullable(),
+  }),
+  z.object({
+    kind: z.literal('unsupported'),
+    base: messageBaseSchema,
+    reason: z.enum(['balloon-app', 'undecodable-body', 'empty']),
+    balloonBundleId: z.string().nullable(),
+    hasAttachments: z.boolean(),
+  }),
+]);
+
+export type MessageItemView = z.infer<typeof messageItemSchema>;
+
+// ---------------------------------------------------------------------------
+// Capabilities
+
+export const capabilitiesSchema = z.object({
+  database: z.enum(['ok', 'not-found', 'permission-denied', 'unreadable']),
+  missingTables: z.array(z.string()),
+  messagesAppPresent: z.boolean(),
+});
+
+export type CapabilitiesView = z.infer<typeof capabilitiesSchema>;
+
+// ---------------------------------------------------------------------------
+// Space command outcomes: expected failures are data, not thrown errors.
+
+export const spaceErrorSchema = z.enum(['space-not-found', 'duplicate-space-name']);
+
+const spaceOutcome = <T extends z.ZodType>(ok: T) =>
+  z.union([z.object({ ok }), z.object({ err: spaceErrorSchema })]);
+
+// ---------------------------------------------------------------------------
 // Commands: renderer → main, request/response.
 
 export const appStatusRequestSchema = z.object({});
@@ -45,10 +152,83 @@ export const appStatusResponseSchema = z.object({
 
 export type AppStatusResponse = z.infer<typeof appStatusResponseSchema>;
 
+const conversationListResponse = z.object({ conversations: z.array(conversationViewSchema) });
+
 export const commands = {
   'app.status': {
     request: appStatusRequestSchema,
     response: appStatusResponseSchema,
+  },
+  'app.capabilities': {
+    request: z.object({}),
+    response: capabilitiesSchema,
+  },
+  'conversations.list': {
+    request: z.object({
+      view: listViewSchema,
+      space: spaceScopeSchema,
+      limit: z.number().int().positive().max(500),
+    }),
+    response: conversationListResponse,
+  },
+  'conversations.search': {
+    request: z.object({
+      query: z.string().min(1),
+      space: spaceScopeSchema,
+      limit: z.number().int().positive().max(200),
+    }),
+    response: conversationListResponse,
+  },
+  'thread.page': {
+    request: z.object({
+      chatGuid: z.string(),
+      limit: z.number().int().positive().max(200),
+      beforeRowId: z.number().int().optional(),
+    }),
+    response: z.object({
+      items: z.array(messageItemSchema),
+      nextBeforeRowId: z.number().int().nullable(),
+    }),
+  },
+  'workflow.archive': {
+    request: z.object({ chatGuid: z.string() }),
+    response: z.object({ state: workflowStateSchema }),
+  },
+  'workflow.snooze': {
+    request: z.object({ chatGuid: z.string(), wakeAt: z.number().int() }),
+    response: z.object({ state: workflowStateSchema }),
+  },
+  'workflow.restore': {
+    request: z.object({ chatGuid: z.string() }),
+    response: z.object({ state: workflowStateSchema }),
+  },
+  'workflow.markSeen': {
+    request: z.object({ chatGuid: z.string() }),
+    response: z.object({}),
+  },
+  'spaces.list': {
+    request: z.object({}),
+    response: z.object({ spaces: z.array(spaceSchema) }),
+  },
+  'spaces.create': {
+    request: z.object({ name: z.string().min(1).max(80) }),
+    response: spaceOutcome(spaceSchema),
+  },
+  'spaces.rename': {
+    request: z.object({ id: z.number().int(), name: z.string().min(1).max(80) }),
+    response: spaceOutcome(spaceSchema),
+  },
+  'spaces.reorder': {
+    request: z.object({ id: z.number().int(), position: z.number().int().nonnegative() }),
+    response: spaceOutcome(z.array(spaceSchema)),
+  },
+  'spaces.delete': {
+    request: z.object({ id: z.number().int() }),
+    response: spaceOutcome(z.null()),
+  },
+  'spaces.assign': {
+    request: z.object({ chatGuid: z.string(), spaceId: z.number().int().nullable() }),
+    response: spaceOutcome(z.null()),
   },
 } as const;
 
@@ -69,6 +249,11 @@ export type HeartbeatEvent = z.infer<typeof heartbeatEventSchema>;
 
 export const events = {
   'app.heartbeat': heartbeatEventSchema,
+  /** Source rows changed in these conversations; re-query to see what. */
+  'conversations.changed': z.object({ chatGuids: z.array(z.string()) }),
+  /** rx workflow state changed outside a renderer-initiated command. */
+  'workflow.changed': z.object({ chatGuid: z.string(), state: workflowStateSchema }),
+  'capabilities.changed': capabilitiesSchema,
 } as const;
 
 export type EventName = keyof typeof events;
@@ -79,6 +264,9 @@ export type EventPayload<E extends EventName> = z.infer<(typeof events)[E]>;
 // The API surface preload exposes to the renderer as `window.rx`.
 
 export interface RxApi {
-  invoke<C extends CommandName>(command: C, request: CommandRequest<C>): Promise<CommandResponse<C>>;
+  invoke<C extends CommandName>(
+    command: C,
+    request: CommandRequest<C>,
+  ): Promise<CommandResponse<C>>;
   on<E extends EventName>(event: E, listener: (payload: EventPayload<E>) => void): () => void;
 }

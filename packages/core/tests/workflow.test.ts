@@ -45,9 +45,7 @@ describe('snooze semantics (spec §3.3)', () => {
 describe('inbox and restore', () => {
   it('inbox is stable under any activity', () => {
     const state = restore();
-    expect(reconcile(state, { latestInbound: 99, verifiedOutbound: true, now: 9_999 })).toBe(
-      state,
-    );
+    expect(reconcile(state, { latestInbound: 99, verifiedOutbound: true, now: 9_999 })).toBe(state);
   });
 
   it('a conversation with no known inbound archives at watermark 0', () => {

@@ -28,11 +28,7 @@ export function App() {
     >
       <div style={{ textAlign: 'center' }}>
         <h1 style={{ fontWeight: 600, letterSpacing: '-0.02em' }}>rx</h1>
-        <p>
-          {status
-            ? `v${status.version} on ${status.platform}`
-            : 'waiting for main process…'}
-        </p>
+        <p>{status ? `v${status.version} on ${status.platform}` : 'waiting for main process…'}</p>
         <p style={{ color: '#888' }}>
           {heartbeat
             ? `heartbeat: up ${Math.round(heartbeat.uptimeMs / 1000)}s`

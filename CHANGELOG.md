@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.4.0 — 2026.08.24
+
+Application read models and the full command surface (plan step 6).
+
+- `packages/core/src/application/`: pure read models joining source
+  summaries with workflow state and Space assignment — default Inbox,
+  Unassigned, effective-state reconciliation (a due snooze or newer inbound
+  reads as Inbox), rx unread from the seen watermark, and per-view ordering
+  (Snoozed by wake time).
+- `@rx/contract` grows the renderer-facing surface: conversation views,
+  spaces, thread items, capabilities, and 13 commands (list, search, thread
+  paging, archive/snooze/restore/mark-seen, five Space operations) plus
+  conversation/workflow/capability change events. Space failures are typed
+  outcomes, not thrown errors.
+- `apps/desktop/src/main/app/commands.ts`: Electron-free command factory
+  wiring reader, decoder, and store; main opens the workflow database at
+  `userData/workflow.db` (`app.setName('rx')` so dev and packaged builds
+  share it) and loads the decoder wasm as a bundled asset.
+- Search matches group names, participant handles, and plain message text
+  with LIKE-escaping; decoded-body indexing is deferred to step 8.
+- 16 integration tests drive every command through the production guard
+  (contract-validated both directions) against the synthetic fixture.
+- Core packages drop internal `@/` aliases in `src/` (they cannot resolve
+  when another package consumes the source); tests keep them.
+
 ## 0.3.0 — 2026.08.24
 
 rx workflow store and state machine (plan step 5).

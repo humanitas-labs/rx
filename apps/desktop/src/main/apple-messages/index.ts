@@ -6,6 +6,7 @@ export * from '@/apple-messages/capabilities';
 export * from '@/apple-messages/conversations';
 export * from '@/apple-messages/messages';
 export * from '@/apple-messages/attachments';
+export * from '@/apple-messages/search';
 export * from '@/apple-messages/events';
 
 import { homedir } from 'node:os';

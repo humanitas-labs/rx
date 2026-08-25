@@ -2,7 +2,7 @@
 // testable without Electron or SQLite. Persistence applies these decisions;
 // it does not reimplement them.
 
-import type { SourceCursor, WorkflowState } from '@/types';
+import type { SourceCursor, WorkflowState } from '../types';
 
 export interface SourceActivity {
   /** Cursor of the newest inbound message currently known. */

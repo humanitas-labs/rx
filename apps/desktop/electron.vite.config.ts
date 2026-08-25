@@ -7,7 +7,11 @@ export default defineConfig({
     // zod is bundled (not externalized): the packaged app ships no
     // node_modules, and the hoisted workspace layout keeps deps at the repo
     // root where electron-builder cannot collect them.
-    plugins: [externalizeDepsPlugin({ exclude: ['@rx/contract', '@rx/core', 'zod'] })],
+    plugins: [
+      externalizeDepsPlugin({
+        exclude: ['@rx/contract', '@rx/core', '@rx/apple-body-decoder', 'zod'],
+      }),
+    ],
     resolve: {
       alias: {
         '@': resolve(__dirname, 'src/main'),

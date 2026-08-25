@@ -111,7 +111,9 @@ function classify(row: SqlRow, decoder: BodyDecoder): MessageItem {
       tapbackType: associatedType,
       added: associatedType < 3000,
       targetMessageGuid:
-        row['associated_guid'] === null ? null : normalizeTargetGuid(String(row['associated_guid'])),
+        row['associated_guid'] === null
+          ? null
+          : normalizeTargetGuid(String(row['associated_guid'])),
     };
   }
 
@@ -125,7 +127,8 @@ function classify(row: SqlRow, decoder: BodyDecoder): MessageItem {
     };
   }
 
-  const balloonBundleId = row['balloon_bundle_id'] === null ? null : String(row['balloon_bundle_id']);
+  const balloonBundleId =
+    row['balloon_bundle_id'] === null ? null : String(row['balloon_bundle_id']);
   const body = decodeBody(row, decoder);
   if (body !== null) {
     return {
@@ -149,10 +152,7 @@ function classify(row: SqlRow, decoder: BodyDecoder): MessageItem {
   };
 }
 
-function decodeBody(
-  row: SqlRow,
-  decoder: BodyDecoder,
-): { text: string; spans: Span[] } | null {
+function decodeBody(row: SqlRow, decoder: BodyDecoder): { text: string; spans: Span[] } | null {
   const attributedBody = row['attributed_body'];
   if (attributedBody instanceof Uint8Array) {
     const result = decoder.decode(attributedBody);
