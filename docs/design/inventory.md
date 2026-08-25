@@ -114,7 +114,7 @@ the default). Commands without a direct binding are reachable through the
 | 15 | `Delivered` receipt | — | Verified-sent per delivery verification model | Pending state (undesigned) | Failed state + retry (undesigned) | — | Implemented (display) |
 | 16 | Thread scrollbar | Scroll thread | — | — | — | Arrows / page keys | Implemented |
 | 17 | Date separator | — | — | — | — | — | Decorative |
-| 18 | Composer `plus` button | — | — | — | — | — | **Deferred** — its evident purpose is attachment send, which is descoped ([iss-0001](../../.issues/iss-0001-file-send-attachment-dropped.md)); hidden in v0 |
+| 18 | Composer `plus` button | — | — | — | — | — | **Deferred** — its evident purpose is attachment send, which is descoped ([iss-0002](../../.issues/iss-0002.md)); hidden in v0 |
 | 19 | Message input | `send_text` | Optimistic pending bubble → verified/failed; verified send from Archive/Snoozed restores to Inbox (§4.4) | Pending bubble | Failed bubble + retry; prior workflow state unchanged | `i` enters Insert mode; `Cmd-Enter` sends; `Enter` inserts a line break; `Esc` back to Navigation | Implemented |
 | 20 | Message input (typing) | Draft persistence | Draft survives while conversation open (§4.4) | — | — | — | Implemented |
 | 21 | Overlay scrim (48-2301) | Close switcher | Return to frame 48-2191 state | — | — | `Esc` | Implemented |
