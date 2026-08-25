@@ -128,10 +128,10 @@ the default). Commands without a direct binding are reachable through the
 
 Open questions for the design (take back into Figma); recommendations inline:
 
-- **Q1 — `pin` tab (48-2191 only).** Pinned conversations appear nowhere in v0
-  scope, and the [keyboard spec §4.2](../spec/keyboard.md#42-workflow-views)
-  already treats the fourth view as unapproved (`4` stays unbound). Recommend:
-  defer pinning post-v0 and drop the glyph from the v0 build.
+- **Q1 — `pin` tab (48-2191 only). Resolved 2026.08.24:** pinning is deferred
+  post-v0 and the glyph is left out of the v0 build. The
+  [keyboard spec §4.2](../spec/keyboard.md#42-workflow-views) already treats
+  the fourth view as unapproved (`4` stays unbound).
 - **Q2 — Filter button semantics.** No popover or field is designed. The
   keyboard spec defines `/` Filter mode over the current list; scope §4.2 also
   requires search across decoded message text. Recommend: this control is the

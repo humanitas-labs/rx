@@ -1,0 +1,37 @@
+{
+  "name": "rx-workspace",
+  "version": "0.1.0",
+  "private": true,
+  "license": "GPL-3.0-only",
+  "engines": {
+    "node": ">=22"
+  },
+  "packageManager": "pnpm@10.30.0",
+  "scripts": {
+    "dev": "pnpm --filter @rx/desktop dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "test:rust": "cargo test --manifest-path packages/apple-body-decoder/Cargo.toml",
+    "lint": "eslint .",
+    "lint:rust": "cargo clippy --manifest-path packages/apple-body-decoder/Cargo.toml --all-targets -- -D warnings",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "package": "pnpm --filter @rx/desktop package"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "eslint": "^9.0.0",
+    "eslint-config-prettier": "^10.0.0",
+    "prettier": "^3.0.0",
+    "typescript": "^5.9.0",
+    "typescript-eslint": "^8.0.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "electron",
+      "electron-winstaller",
+      "esbuild"
+    ]
+  }
+}

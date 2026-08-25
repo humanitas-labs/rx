@@ -117,10 +117,12 @@ The evidence and open risks are recorded in the
 
 ## Development
 
-The application scaffold has not been created yet. The approved direction is an
-Electron application with a TypeScript main process, isolated preload API, and
-React renderer. Small native modules will handle Apple-specific decoding and
-Contacts access.
+rx is a pnpm workspace: an Electron application (TypeScript main process,
+isolated preload API, sandboxed React renderer) plus packages for the shared
+IPC contract, the pure domain core, the Rust→WASM message-body decoder, and
+the Contacts bridge. See the
+[development guide](docs/dev/development.md) for toolchain, commands, and the
+permission model.
 
 Reproducible platform experiments live under
 [`spikes/apple-platform/`](spikes/apple-platform/). They must not print or

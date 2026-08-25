@@ -1,0 +1,24 @@
+{
+  "name": "@rx/apple-body-decoder",
+  "version": "0.1.0",
+  "private": true,
+  "license": "GPL-3.0-only",
+  "type": "module",
+  "main": "./js/index.ts",
+  "types": "./js/index.ts",
+  "scripts": {
+    "build:wasm": "cargo build --release --target wasm32-unknown-unknown && mkdir -p dist && cp target/wasm32-unknown-unknown/release/rx_apple_body_decoder.wasm dist/decoder.wasm",
+    "build": "pnpm build:wasm",
+    "typecheck": "tsc -p tsconfig.json",
+    "pretest": "pnpm build:wasm",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@rx/contract": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0",
+    "vitest": "^3.0.0"
+  }
+}

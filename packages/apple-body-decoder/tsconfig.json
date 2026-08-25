@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["js/*"]
+    },
+    "types": ["node"],
+    "lib": ["ES2023", "DOM"]
+  },
+  "include": ["js", "tests", "vitest.config.ts"]
+}

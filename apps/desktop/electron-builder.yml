@@ -1,0 +1,21 @@
+appId: sh.rx.desktop
+productName: rx
+# Hoisted workspace layout puts electron in the repo root, where
+# electron-builder cannot resolve the range from this package.json.
+electronVersion: 38.8.6
+directories:
+  output: release
+files:
+  - out/**
+mac:
+  category: public.app-category.social-networking
+  # Development signing until a Developer ID Application certificate exists
+  # (required before plan step 12).
+  type: development
+  hardenedRuntime: true
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  target:
+    - target: dir
+      arch:
+        - arm64
