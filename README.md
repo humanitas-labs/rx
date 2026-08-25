@@ -132,9 +132,9 @@ need re-granting after rebuilds. Distribution signing is planned.
 v0 is feature-complete and in pre-release dogfooding: onboarding, Inbox /
 Snoozed / Archive with Spaces, search, the conversation reader (attachments,
 tapbacks, replies), verified sending, and live updates with automatic
-resurfacing and snooze wake. Remaining before release: the
-[operational acceptance run](docs/testing/v0-dogfood.md) and distribution
-signing. Release history: [CHANGELOG](CHANGELOG.md).
+resurfacing and snooze wake. Remaining before release: an operational
+acceptance run and distribution signing. Release history:
+[CHANGELOG](CHANGELOG.md).
 
 ## Planned v0 limitations
 
@@ -153,9 +153,9 @@ signing. Release history: [CHANGELOG](CHANGELOG.md).
 rx is a pnpm workspace: an Electron application (TypeScript main process,
 isolated preload API, sandboxed React renderer) plus packages for the shared
 IPC contract, the pure domain core, the Rust→WASM message-body decoder, and
-the Contacts bridge. See the
-[development guide](docs/dev/development.md) for toolchain, commands, and the
-permission model.
+the Contacts bridge. Toolchain prerequisites and the build are described under
+[Install and run](#install-and-run); the permission model is documented in
+[docs/privacy.md](docs/privacy.md).
 
 The full implementation sequence is documented in the
 [v0 implementation plan](.plan/v0.md). Known issues are tracked in the
