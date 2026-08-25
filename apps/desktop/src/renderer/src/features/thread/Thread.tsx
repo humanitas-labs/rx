@@ -51,6 +51,15 @@ export function Thread(props: {
     }
   }, [firstKey]);
 
+  // Attachment images decode after the mount scroll and grow the content
+  // under it; while pinned to the bottom, every image settling re-sticks.
+  const stickAfterImage = () => {
+    const el = scrollRef.current;
+    if (el !== null && nearBottomRef.current && anchorHeightRef.current === null) {
+      el.scrollTop = el.scrollHeight;
+    }
+  };
+
   return (
     <div
       className="thread"
@@ -74,24 +83,30 @@ export function Thread(props: {
     >
       {props.loadingOlder && <div className="thread-note">Loading older messages…</div>}
       {nodes.map((node) => (
-        <ThreadNodeView key={node.key} node={node} />
+        <ThreadNodeView key={node.key} node={node} onImageSettled={stickAfterImage} />
       ))}
     </div>
   );
 }
 
-function ThreadNodeView({ node }: { node: ThreadNode }) {
+function ThreadNodeView({ node, onImageSettled }: { node: ThreadNode; onImageSettled: () => void }) {
   switch (node.kind) {
     case 'separator':
       return <div className="thread-date">{node.label}</div>;
     case 'event':
       return <div className="thread-note">{node.text}</div>;
     case 'message':
-      return <MessageView node={node} />;
+      return <MessageView node={node} onImageSettled={onImageSettled} />;
   }
 }
 
-function MessageView({ node }: { node: Extract<ThreadNode, { kind: 'message' }> }) {
+function MessageView({
+  node,
+  onImageSettled,
+}: {
+  node: Extract<ThreadNode, { kind: 'message' }>;
+  onImageSettled: () => void;
+}) {
   const { item } = node;
   const out = item.base.isFromMe;
   const attachments = item.attachments;
@@ -100,7 +115,7 @@ function MessageView({ node }: { node: Extract<ThreadNode, { kind: 'message' }> 
       {node.showSender && <div className="sender-label">{item.base.senderHandle ?? '?'}</div>}
       {node.replySnippet !== null && <div className="reply-preview">↩︎ {node.replySnippet}</div>}
       {attachments.map((attachment) => (
-        <AttachmentBlock key={attachment.guid} attachment={attachment} />
+        <AttachmentBlock key={attachment.guid} attachment={attachment} onSettled={onImageSettled} />
       ))}
       {item.kind === 'unsupported' ? (
         attachments.length === 0 && (
@@ -123,7 +138,14 @@ function MessageView({ node }: { node: Extract<ThreadNode, { kind: 'message' }> 
   );
 }
 
-function AttachmentBlock({ attachment }: { attachment: AttachmentView }) {
+function AttachmentBlock({
+  attachment,
+  onSettled,
+}: {
+  attachment: AttachmentView;
+  /** The element reached its final size (loaded, or swapped to the chip). */
+  onSettled: () => void;
+}) {
   // HEIC and friends fail to decode in Chromium; fall back to the chip.
   const [imageFailed, setImageFailed] = useState(false);
   const renderable =
@@ -134,7 +156,11 @@ function AttachmentBlock({ attachment }: { attachment: AttachmentView }) {
         className="attachment-image"
         src={attachmentUrl(attachment.guid)}
         alt={attachment.transferName ?? 'Attachment'}
-        onError={() => setImageFailed(true)}
+        onLoad={onSettled}
+        onError={() => {
+          setImageFailed(true);
+          onSettled();
+        }}
       />
     );
   }
