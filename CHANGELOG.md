@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.6.1 — 2026.08.24
+
+Design-fidelity pass against the source frames (48-2191, 48-2301), built
+from the frames' own values and exported vectors rather than approximations.
+
+- Palette corrected throughout: window `#141414`, raised surfaces `#171717`,
+  hairlines `#252525`, green edge bars `#b2faae` for active (4×32) and hover
+  (4×12) rows, unread dot `#00ccff`, bubbles `#1f1f1f` / `#009df8`,
+  secondary text `#979d9c` / `#9a9a9a`, placeholders `#4d4d4d`.
+- Sidebar to frame: no right border, glyph view tabs (the design's SF Symbol
+  SVGs via CSS masks — white when active, `#3c3b39` idle), filter glyph on
+  the right, circled compose button top-right, icon-only hexagon Space
+  button bottom-left, rows with indented hairlines, 11.4/13 px type ramp,
+  and no filled selection background — the edge bar carries selection.
+- Reader to frame: centered avatar + name + chevron header (the chevron is
+  the actions menu trigger), 12.3 px bubbles at the design radii and
+  shadows, thread column inset to the frame's gutters, 32 px composer pill
+  aligned with the Space button row.
+- Space switcher to frame: rows float on a blurred scrim
+  (`rgba(0,0,0,0.35)` + 15 px backdrop blur), 32 px icon circles with 14 px
+  medium labels at 47 px pitch, active row as `#171717` squircle plus the
+  green edge bar, New Space as a dashed circle.
+- Traffic lights repositioned to 16,16; the design's SVG assets are
+  committed under `src/renderer/src/assets/`.
+
 ## 0.6.0 — 2026.08.24
 
 Inbox, Snoozed, Archive, and search to design (plan step 8).

@@ -7,6 +7,9 @@ import { useEffect, useState, type MutableRefObject, type RefObject } from 'reac
 
 import type { ConversationView, MessageItemView } from '@rx/contract';
 
+import chevronIcon from '@/assets/chevron.svg';
+import { Icon } from '@/ui/Icon';
+
 export function Reader(props: {
   conversation: ConversationView | null;
   composerRef: RefObject<HTMLTextAreaElement | null>;
@@ -52,7 +55,7 @@ export function Reader(props: {
   if (props.conversation === null || chatGuid === null) {
     return (
       <main className="reader">
-        <div className="reader-header" />
+        <div className="reader-header" style={{ height: 97 }} />
         <div className="placeholder">Select a conversation.</div>
       </main>
     );
@@ -64,17 +67,18 @@ export function Reader(props: {
   return (
     <main className="reader">
       <div className="reader-header">
-        <span>{name}</span>
+        <span className="avatar">{initials(name)}</span>
         <button
-          className="header-menu"
+          className="reader-header-name"
           title="Conversation actions"
           aria-label="Conversation actions"
           onClick={(e) => {
             const rect = e.currentTarget.getBoundingClientRect();
-            props.onHeaderMenu(rect.left, rect.bottom + 4);
+            props.onHeaderMenu(rect.left, rect.bottom + 6);
           }}
         >
-          ⋯
+          <span>{name}</span>
+          <Icon src={chevronIcon} width={5} height={8} color="var(--chevron)" />
         </button>
       </div>
       <div className="thread">
@@ -103,6 +107,12 @@ export function Reader(props: {
       </div>
     </main>
   );
+}
+
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  const chars = parts.slice(0, 2).map((p) => (p[0] ?? '').toUpperCase());
+  return chars.join('') || '?';
 }
 
 function ThreadItem({ item }: { item: MessageItemView }) {

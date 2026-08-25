@@ -8,6 +8,13 @@ import { useEffect, useRef, useState } from 'react';
 
 import type { SpaceScope, SpaceView } from '@rx/contract';
 
+import hexagonIcon from '@/assets/hexagon.svg';
+import { Icon } from '@/ui/Icon';
+
+function spaceInitial(name: string): string {
+  return (name.trim()[0] ?? '?').toUpperCase();
+}
+
 export function SpaceSwitcher(props: {
   spaces: SpaceView[];
   active: SpaceScope;
@@ -172,7 +179,7 @@ export function SpaceSwitcher(props: {
           ) : (
             <div
               key={String(entry.scope)}
-              className={`overlay-row space-row${index === cursor ? ' selected' : ''}${
+              className={`space-row${index === cursor ? ' cursor' : ''}${
                 entry.scope === props.active ? ' active' : ''
               }`}
               role="option"
@@ -180,6 +187,13 @@ export function SpaceSwitcher(props: {
               onMouseEnter={() => setCursor(index)}
               onClick={() => props.onSelect(entry.scope)}
             >
+              <span className="space-circle">
+                {entry.space === null ? (
+                  <Icon src={hexagonIcon} width={14} height={13} />
+                ) : (
+                  spaceInitial(entry.label)
+                )}
+              </span>
               <span className="space-row-label">{entry.label}</span>
               {entry.space !== null && (
                 <span className="space-tools" onClick={(e) => e.stopPropagation()}>
@@ -239,8 +253,9 @@ export function SpaceSwitcher(props: {
             />
           </div>
         ) : (
-          <button className="overlay-row" onClick={() => setCreating(true)}>
-            <span>＋ New Space</span>
+          <button className="space-row new-space" onClick={() => setCreating(true)}>
+            <span className="space-circle">＋</span>
+            <span>New Space</span>
           </button>
         )}
         {error !== null && <div className="overlay-error">{error}</div>}

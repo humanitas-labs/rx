@@ -3,20 +3,27 @@
 // one-line preview, relative time, unread dot, active bar — plus the step-8
 // triage affordances: hover glyphs and a context menu (inventory §1.4, §2).
 
-import { useEffect, useRef, useState, type RefObject } from 'react';
+import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
 
 import type { ConversationView, ListView } from '@rx/contract';
 
+import archiveIcon from '@/assets/archive.svg';
+import clockDashedIcon from '@/assets/clock-dashed.svg';
+import composeIcon from '@/assets/compose.svg';
+import filterIcon from '@/assets/filter.svg';
+import hexagonIcon from '@/assets/hexagon.svg';
+import inboxIcon from '@/assets/inbox.svg';
 import { computeWindow, scrollTopFor } from '@/features/conversations/virtual';
+import { Icon } from '@/ui/Icon';
 
 export const ROW_HEIGHT = 64;
 
 export type RowAction = 'archive' | 'snooze' | 'restore';
 
-const VIEWS: { key: ListView; label: string; shortcut: string }[] = [
-  { key: 'inbox', label: 'Inbox', shortcut: '1' },
-  { key: 'snoozed', label: 'Snoozed', shortcut: '2' },
-  { key: 'archived', label: 'Archive', shortcut: '3' },
+const VIEWS: { key: ListView; label: string; shortcut: string; icon: string }[] = [
+  { key: 'inbox', label: 'Inbox', shortcut: '1', icon: inboxIcon },
+  { key: 'snoozed', label: 'Snoozed', shortcut: '2', icon: clockDashedIcon },
+  { key: 'archived', label: 'Archive', shortcut: '3', icon: archiveIcon },
 ];
 
 export function Sidebar(props: {
@@ -75,7 +82,15 @@ export function Sidebar(props: {
 
   return (
     <aside className="sidebar">
-      <div className="sidebar-top" />
+      <div className="sidebar-top">
+        <button
+          className="compose-button"
+          disabled
+          title="New conversation — arrives with compose (step 10)"
+        >
+          <Icon src={composeIcon} width={15} height={15} />
+        </button>
+      </div>
       <div className="tab-row" role="tablist">
         {VIEWS.map((v) => (
           <button
@@ -86,9 +101,13 @@ export function Sidebar(props: {
             title={`${v.label} (${v.shortcut})`}
             onClick={() => props.onSelectView(v.key)}
           >
-            {v.label}
+            <Icon src={v.icon} width={13} height={13} />
           </button>
         ))}
+        <span className="tab-spacer" />
+        <button className="filter-toggle" title="Filter (/)" onClick={props.onFilterFocus}>
+          <Icon src={filterIcon} width={14} height={8} />
+        </button>
       </div>
       {props.filterActive && (
         <input
@@ -146,9 +165,17 @@ export function Sidebar(props: {
         )}
       </div>
       <div className="sidebar-bottom">
-        <button className="space-button" onClick={props.onOpenSpaces} title="Spaces (g s)">
-          <span className="space-glyph">⬡</span>
-          <span>{props.spaceLabel}</span>
+        <button
+          className="space-button"
+          onClick={props.onOpenSpaces}
+          title={`Spaces — ${props.spaceLabel} (g s)`}
+        >
+          <span className="space-glyph">
+            <Icon src={hexagonIcon} width={14} height={13} />
+          </span>
+          {props.spaceLabel !== 'All' && (
+            <span className="space-button-label">{props.spaceLabel}</span>
+          )}
         </button>
       </div>
     </aside>
@@ -175,14 +202,26 @@ function ConversationRow({
     view === 'snoozed' && c.state.kind === 'snoozed'
       ? `⏰ ${formatTime(c.state.wakeAt)}`
       : formatTime(c.lastActivityAtMs);
-  const actions: { action: RowAction; label: string; glyph: string }[] =
+  const actions: { action: RowAction; label: string; glyph: ReactNode }[] =
     c.state.kind === 'inbox'
       ? [
-          { action: 'snooze', label: 'Snooze…', glyph: '◷' },
-          { action: 'archive', label: 'Archive', glyph: '▣' },
+          {
+            action: 'snooze',
+            label: 'Snooze…',
+            glyph: <Icon src={clockDashedIcon} width={11} height={11} />,
+          },
+          {
+            action: 'archive',
+            label: 'Archive',
+            glyph: <Icon src={archiveIcon} width={11} height={11} />,
+          },
         ]
       : [
-          { action: 'snooze', label: 'Snooze…', glyph: '◷' },
+          {
+            action: 'snooze',
+            label: 'Snooze…',
+            glyph: <Icon src={clockDashedIcon} width={11} height={11} />,
+          },
           { action: 'restore', label: 'Restore to Inbox', glyph: '↩' },
         ];
   return (

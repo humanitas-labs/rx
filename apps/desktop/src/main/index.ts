@@ -28,10 +28,11 @@ function createWindow(): BrowserWindow {
     minWidth: 900,
     minHeight: 600,
     show: false,
-    // Frameless with custom-positioned traffic lights (frame 48-2191).
+    // Frameless with custom-positioned traffic lights (frame 48-2191:
+    // lights at 16,16 on a #141414 window).
     titleBarStyle: 'hiddenInset',
-    trafficLightPosition: { x: 20, y: 18 },
-    backgroundColor: '#1a1a1c',
+    trafficLightPosition: { x: 16, y: 16 },
+    backgroundColor: '#141414',
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       // The renderer is a sandboxed web application: no Node, no filesystem,
