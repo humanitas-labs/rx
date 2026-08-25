@@ -385,12 +385,30 @@ textarea::placeholder {
 
 /* Centered avatar + name + chevron; no bar, no border (frame 48-2191). */
 .reader-header {
+  position: relative;
   flex: none;
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: 21px 0 10px;
   -webkit-app-region: drag;
+}
+
+/* Frame 100-2703: green calendar glyph, top-right of the reader (iss-0009). */
+.reader-calendar {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  color: var(--icon-idle);
+  -webkit-app-region: no-drag;
+}
+
+.reader-calendar:hover {
+  color: var(--text-dim);
 }
 
 .reader-header-name {

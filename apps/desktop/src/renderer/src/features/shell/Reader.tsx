@@ -14,6 +14,7 @@ import {
 
 import type { ConversationView, DeliveryFailureView, MessageItemView } from '@rx/contract';
 
+import calendarIcon from '@/assets/calendar.svg';
 import chevronIcon from '@/assets/chevron.svg';
 import { ComposerField } from '@/features/compose/ComposerField';
 import { FAILURE_TEXT } from '@/features/compose/compose';
@@ -217,6 +218,14 @@ export function Reader(props: {
         >
           <span>{name}</span>
           <Icon src={chevronIcon} width={5} height={8} color="var(--chevron)" />
+        </button>
+        <button
+          className="reader-calendar"
+          title="Person calendar"
+          aria-label="Person calendar"
+          type="button"
+        >
+          <Icon src={calendarIcon} width={14} height={15} />
         </button>
       </div>
       {threadError ? (
