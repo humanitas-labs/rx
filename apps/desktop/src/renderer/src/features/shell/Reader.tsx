@@ -80,6 +80,42 @@ export function Reader(props: {
     // Keyed by conversation identity only.
   }, [chatGuid]);
 
+  // Live updates (plan step 11): when the source changes in this
+  // conversation, refetch the latest page and append the rows that are new.
+  // assembleThread re-runs over the merged items, so an arriving tapback or
+  // reply nets onto its visible target too.
+  useEffect(() => {
+    if (chatGuid === null) {
+      return;
+    }
+    return window.rx.on('conversations.changed', ({ chatGuids }) => {
+      if (!chatGuids.includes(chatGuid)) {
+        return;
+      }
+      void window.rx.invoke('thread.page', { chatGuid, limit: PAGE_SIZE }).then((page) => {
+        setThread((current) => {
+          if (current === null) {
+            return page;
+          }
+          const lastRowId = current.items[current.items.length - 1]?.base.rowId ?? 0;
+          const fresh = page.items.filter((item) => item.base.rowId > lastRowId);
+          if (fresh.length === 0) {
+            return current;
+          }
+          return {
+            items: [...current.items, ...fresh],
+            nextBeforeRowId: current.nextBeforeRowId,
+          };
+        });
+      });
+      // Reading the open conversation keeps it read — but only while the
+      // window actually has focus; in the background the unread dot stands.
+      if (document.hasFocus()) {
+        void window.rx.invoke('workflow.markSeen', { chatGuid }).then(() => props.onSeen(chatGuid));
+      }
+    });
+  }, [chatGuid]);
+
   const loadOlder = useCallback(() => {
     if (chatGuid === null || thread === null || thread.nextBeforeRowId === null || loadingOlder) {
       return;

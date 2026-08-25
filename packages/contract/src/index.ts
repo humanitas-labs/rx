@@ -334,6 +334,8 @@ export const events = {
   /** rx workflow state changed outside a renderer-initiated command. */
   'workflow.changed': z.object({ chatGuid: z.string(), state: workflowStateSchema }),
   'capabilities.changed': capabilitiesSchema,
+  /** Source monitoring health; while degraded the inbox may be stale. */
+  'source.status': z.object({ observing: z.boolean(), lastError: z.string().nullable() }),
 } as const;
 
 export type EventName = keyof typeof events;

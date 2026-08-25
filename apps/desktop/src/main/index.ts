@@ -1,7 +1,7 @@
 import { mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { BrowserWindow, app, net, protocol, shell } from 'electron';
+import { BrowserWindow, app, net, powerMonitor, protocol, shell } from 'electron';
 
 import { createDecoder } from '@rx/apple-body-decoder';
 import { ATTACHMENT_PROTOCOL } from '@rx/contract';
@@ -16,6 +16,7 @@ import {
   openMessagesDatabase,
 } from '@/apple-messages';
 import { registerCommand, registerCommands, sendEvent } from '@/ipc';
+import { startRuntime } from '@/runtime/runtime';
 
 // One name in dev and packaged builds so userData — and the workflow
 // database under it — resolves to the same place (~/Library/Application
@@ -131,7 +132,22 @@ void app.whenReady().then(async () => {
   const heartbeat = setInterval(() => {
     sendEvent(window, 'app.heartbeat', { at: Date.now(), uptimeMs: Date.now() - startedAt });
   }, 5_000);
-  window.on('closed', () => clearInterval(heartbeat));
+
+  // Background lifecycle (plan step 11): live source observation, resurface
+  // persistence, snooze wake pass — with a wake pass on system resume so
+  // due snoozes surface the moment the lid opens.
+  const runtime = startRuntime({
+    getReader: () => services.reader,
+    dbPath: messagesDbPath,
+    store: services.store,
+    emit: (event, payload) => sendEvent(window, event, payload),
+  });
+  powerMonitor.on('resume', () => runtime.wakePass());
+
+  window.on('closed', () => {
+    clearInterval(heartbeat);
+    runtime.stop();
+  });
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

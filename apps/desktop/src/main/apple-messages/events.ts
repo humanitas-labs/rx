@@ -33,6 +33,8 @@ export function createSourceObserver(options: {
   reader: MessagesReader;
   dbPath: string;
   onEvent: (event: SourceChangeEvent) => void;
+  /** A scheduled catch-up pass failed (locked or unreadable database). */
+  onError?: (error: unknown) => void;
   /** Poll fallback interval; WAL activity triggers earlier checks. */
   pollIntervalMs?: number;
   /** Starting cursor; defaults to the current MAX(ROWID) (only new rows). */
@@ -88,6 +90,16 @@ export function createSourceObserver(options: {
     return event;
   }
 
+  // Scheduled passes must never throw into a timer; failures surface
+  // through onError so the caller can mark monitoring degraded and retry.
+  function guardedCheck() {
+    try {
+      check();
+    } catch (error) {
+      options.onError?.(error);
+    }
+  }
+
   function scheduleCheck() {
     if (debounce) {
       return;
@@ -96,7 +108,7 @@ export function createSourceObserver(options: {
     // catch-up pass without adding user-visible latency (spike 2: ~250 ms).
     debounce = setTimeout(() => {
       debounce = null;
-      check();
+      guardedCheck();
     }, 200);
   }
 
@@ -110,7 +122,7 @@ export function createSourceObserver(options: {
       } catch {
         watcher = null; // No WAL file yet; the interval poll covers it.
       }
-      timer = setInterval(check, pollIntervalMs);
+      timer = setInterval(guardedCheck, pollIntervalMs);
     },
     stop() {
       watcher?.close();

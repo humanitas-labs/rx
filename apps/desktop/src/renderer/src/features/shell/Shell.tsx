@@ -43,6 +43,7 @@ export function Shell() {
   const [menu, setMenu] = useState<{ guid: string; x: number; y: number } | null>(null);
   const [chordPending, setChordPending] = useState(false);
   const [refreshTick, setRefreshTick] = useState(0);
+  const [monitorDegraded, setMonitorDegraded] = useState(false);
 
   const prevMode = useRef<Mode>('navigation');
   const chordTimer = useRef<number | null>(null);
@@ -83,6 +84,21 @@ export function Shell() {
   useEffect(() => {
     void window.rx.invoke('spaces.list', {}).then((r) => setSpaces(r.spaces));
   }, [refreshTick]);
+
+  // Live updates (plan step 11): main pushes source and workflow changes;
+  // both re-query through the same list path — never patched optimistically.
+  useEffect(() => {
+    const offConversations = window.rx.on('conversations.changed', refresh);
+    const offWorkflow = window.rx.on('workflow.changed', refresh);
+    const offStatus = window.rx.on('source.status', (status) =>
+      setMonitorDegraded(!status.observing),
+    );
+    return () => {
+      offConversations();
+      offWorkflow();
+      offStatus();
+    };
+  }, [refresh]);
 
   // Source-side search: names, handles, plain and decoded message text.
   // Debounced; a generation counter cancels anything stale (spec §4.2).
@@ -515,6 +531,7 @@ export function Shell() {
         onOpenSpaces={() => openOverlay('spaces')}
         onCompose={() => openOverlay('compose')}
         spaceLabel={spaceLabel(space, spaces)}
+        monitorDegraded={monitorDegraded}
       />
       <Reader
         conversation={selected}

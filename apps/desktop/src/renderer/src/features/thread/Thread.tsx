@@ -22,20 +22,25 @@ export function Thread(props: {
   // Height captured when an older page is requested; the layout effect
   // restores the visual position after the prepend renders.
   const anchorHeightRef = useRef<number | null>(null);
+  // Whether the user is reading the bottom of the thread; live-arriving
+  // messages only auto-scroll then (never yank someone out of history).
+  const nearBottomRef = useRef(true);
   const firstKey = props.items[0]?.base.guid ?? null;
+  const lastKey = props.items[props.items.length - 1]?.base.guid ?? null;
 
   const nodes = useMemo(
     () => assembleThread(props.items, { isGroup: props.isGroup, now: Date.now() }),
     [props.items, props.isGroup],
   );
 
-  // On mount, open at the latest message.
+  // On mount, and when new messages append while reading the bottom, land
+  // on the latest message. Prepends never hit this (lastKey unchanged).
   useLayoutEffect(() => {
     const el = scrollRef.current;
-    if (el !== null) {
+    if (el !== null && anchorHeightRef.current === null && nearBottomRef.current) {
       el.scrollTop = el.scrollHeight;
     }
-  }, []);
+  }, [lastKey]);
 
   // After an older page is prepended, keep what was on screen on screen.
   useLayoutEffect(() => {
@@ -52,6 +57,9 @@ export function Thread(props: {
       ref={scrollRef}
       onScroll={() => {
         const el = scrollRef.current;
+        if (el !== null) {
+          nearBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+        }
         if (
           el !== null &&
           el.scrollTop < LOAD_OLDER_THRESHOLD_PX &&

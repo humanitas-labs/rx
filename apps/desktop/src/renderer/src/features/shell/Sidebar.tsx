@@ -46,6 +46,8 @@ export function Sidebar(props: {
   onOpenSpaces: () => void;
   onCompose: () => void;
   spaceLabel: string;
+  /** Source monitoring is degraded; the list may be stale (plan step 11). */
+  monitorDegraded: boolean;
 }) {
   const listRef = useRef<HTMLDivElement>(null);
   const [scrollTop, setScrollTop] = useState(0);
@@ -120,6 +122,9 @@ export function Sidebar(props: {
             }
           }}
         />
+      )}
+      {props.monitorDegraded && (
+        <div className="monitor-banner">Live updates interrupted — retrying…</div>
       )}
       <div
         ref={listRef}

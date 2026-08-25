@@ -176,6 +176,16 @@ textarea::placeholder {
   margin-top: 20px;
 }
 
+/* Source monitoring degraded (step 11): the list may be stale — say so. */
+.monitor-banner {
+  margin: 12px 13px 0;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: #2a2413;
+  color: #d9b64a;
+  font-size: 11.5px;
+}
+
 /* Row anatomy (frame 48-2191): 64px pitch, avatar at x=35, text at x=87,
    time right-aligned at 13px inset, indented hairline divider. */
 .conv-row {

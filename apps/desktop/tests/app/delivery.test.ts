@@ -25,7 +25,6 @@ const wasmPath = fileURLToPath(
 );
 
 const DIRECT = 'iMessage;-;fixture-direct';
-const GROUP = 'chat000fixture-group';
 const NEW_HANDLE = '+15550009999';
 const NEW_CHAT = `iMessage;-;${NEW_HANDLE}`;
 const T0 = 1_756_000_000_000;
@@ -114,7 +113,7 @@ describe('compose.send (step 10)', () => {
   });
 
   it('never verifies a row that landed in a different conversation', async () => {
-    // The row appears in GROUP while the intended target is DIRECT.
+    // The row appears in the group chat while the intended target is DIRECT.
     const invoke = makeInvoke(automationInserting(2, 'misrouted text'));
     const { outcome } = await invoke('compose.send', {
       target: { kind: 'chat', chatGuid: DIRECT },

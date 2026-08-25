@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.9.0 — 2026.08.24
+
+Live source events and the background lifecycle (plan step 11).
+
+- The inbox is live: a runtime starts source observation (WAL watch plus a
+  poll fallback) once permission and schema checks pass, converts new
+  source rows into per-conversation events, and pushes
+  `conversations.changed` to the renderer — lists refresh and the open
+  thread appends new messages in place.
+- Resurface transitions are persisted *before* the renderer is notified,
+  so re-queries always see the settled workflow state: a new inbound
+  message returns an archived or snoozed conversation to Inbox
+  (spec §3.3); outbound rows written by Messages.app are visible but never
+  restore anything.
+- Snooze wake pass runs on launch (catching snoozes that came due while rx
+  was closed), on system resume via powerMonitor (a lid-open wake surfaces
+  due snoozes immediately), and on a bounded 30 s timer.
+- Monitoring failures are visible and retryable: a locked or unreadable
+  database flips a sidebar banner ("Live updates interrupted — retrying…")
+  instead of silently presenting a stale inbox; the observer keeps
+  retrying, recovery clears the banner, and rows that arrived during the
+  outage are caught up on the first healthy pass.
+- Reading the bottom of an open conversation keeps it read (seen watermark
+  advances only while the window has focus); new messages auto-scroll only
+  when already at the bottom — arriving mail never yanks the view out of
+  scrolled-back history.
+
 ## 0.8.0 — 2026.08.24
 
 Compose, new conversation, and delivery verification (plan step 10).
