@@ -6,6 +6,7 @@
 import {
   useCallback,
   useEffect,
+  useRef,
   useState,
   type MutableRefObject,
   type RefObject,
@@ -14,6 +15,7 @@ import {
 import type { ConversationView, DeliveryFailureView, MessageItemView } from '@rx/contract';
 
 import chevronIcon from '@/assets/chevron.svg';
+import { ComposerField } from '@/features/compose/ComposerField';
 import { FAILURE_TEXT } from '@/features/compose/compose';
 import { Thread } from '@/features/thread/Thread';
 import { Icon } from '@/ui/Icon';
@@ -33,6 +35,8 @@ export function Reader(props: {
   /** Open the conversation actions menu (triage, move) at this position. */
   onHeaderMenu: (x: number, y: number) => void;
   onSeen: (chatGuid: string) => void;
+  /** After an explicit mark-unread, skip auto-seen until the user leaves this chat. */
+  suppressSeen: boolean;
   /** A send was verified — workflow state may have changed (restore). */
   onSent: () => void;
   /** Shell routes ⌘↩ / the palette Send command through this. */
@@ -49,6 +53,8 @@ export function Reader(props: {
   // Bumps the Thread key after a verified send so it remounts scrolled to
   // the new latest message.
   const [sentTick, setSentTick] = useState(0);
+  const suppressSeenRef = useRef(props.suppressSeen);
+  suppressSeenRef.current = props.suppressSeen;
 
   useEffect(() => {
     if (chatGuid === null) {
@@ -72,8 +78,11 @@ export function Reader(props: {
           setThreadError(true);
         }
       });
-    // Opening a conversation advances the rx seen watermark (spec §3.4).
-    void window.rx.invoke('workflow.markSeen', { chatGuid }).then(() => props.onSeen(chatGuid));
+    // Opening a conversation advances the rx seen watermark (spec §3.4),
+    // unless `u` is holding this chat unread until the user leaves.
+    if (!suppressSeenRef.current) {
+      void window.rx.invoke('workflow.markSeen', { chatGuid }).then(() => props.onSeen(chatGuid));
+    }
     return () => {
       cancelled = true;
     };
@@ -110,7 +119,7 @@ export function Reader(props: {
       });
       // Reading the open conversation keeps it read — but only while the
       // window actually has focus; in the background the unread dot stands.
-      if (document.hasFocus()) {
+      if (document.hasFocus() && !suppressSeenRef.current) {
         void window.rx.invoke('workflow.markSeen', { chatGuid }).then(() => props.onSeen(chatGuid));
       }
     });
@@ -223,8 +232,8 @@ export function Reader(props: {
         />
       )}
       <div className="composer">
-        <textarea
-          ref={props.composerRef}
+        <ComposerField
+          fieldRef={props.composerRef}
           placeholder="Message"
           value={draft}
           rows={1}

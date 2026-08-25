@@ -7,6 +7,9 @@
     <true/>
     <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
     <true/>
+    <!-- Messages.app automation under the hardened runtime. -->
+    <key>com.apple.security.automation.apple-events</key>
+    <true/>
     <!-- Contacts framework access for the native bridge (spike 6). -->
     <key>com.apple.security.personal-information.addressbook</key>
     <true/>

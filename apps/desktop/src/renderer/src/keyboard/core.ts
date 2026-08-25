@@ -101,6 +101,8 @@ export function resolveKey(state: KeyState, input: KeyInput): KeyAction {
       return command('view.snoozed');
     case '3':
       return command('view.archive');
+    case 'u':
+      return command('conv.markUnseen');
     case 'g':
       return { type: 'chord-start' };
     case 'Escape':

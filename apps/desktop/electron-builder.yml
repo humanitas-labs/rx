@@ -7,6 +7,11 @@ directories:
   output: release
 files:
   - out/**
+# Contacts helper (ADR-005): a small Swift binary over CNContactStore,
+# spawned by the main process. Built by `pnpm build:contacts`.
+extraResources:
+  - from: build/rx-contacts
+    to: rx-contacts
 # Close the generic-Electron attack surface: the packaged binary cannot run
 # as a Node interpreter, take NODE_OPTIONS / --inspect injection, or load
 # app code from outside app.asar.
@@ -26,6 +31,19 @@ mac:
   hardenedRuntime: true
   entitlements: build/entitlements.mac.plist
   entitlementsInherit: build/entitlements.mac.plist
+  # In-app path (relative to the .app). swiftc linker-signs ad-hoc; the
+  # build script strips that so this pass owns the helper once.
+  binaries:
+    - Contents/Resources/rx-contacts
+  # Contacts consent prompt attribution (the helper's CNContactStore call is
+  # attributed to rx as the responsible process).
+  extendInfo:
+    NSContactsUsageDescription: >-
+      rx shows contact names next to phone numbers and email addresses.
+      Contacts are read from the system address book and never stored.
+    NSAppleEventsUsageDescription: >-
+      rx asks Messages to send text that you explicitly submit, then verifies
+      the resulting message in the local Messages database.
   target:
     - target: dir
       arch:

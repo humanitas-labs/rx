@@ -62,6 +62,8 @@ export interface MessageBase {
   rowId: number;
   isFromMe: boolean;
   senderHandle: string | null;
+  /** Filled by the application layer from the contacts bridge; null here. */
+  senderName: string | null;
   sentAtMs: number;
 }
 
@@ -173,6 +175,7 @@ function classify(
     rowId: Number(row['row_id']),
     isFromMe: Number(row['is_from_me']) === 1,
     senderHandle: row['sender_handle'] === null ? null : String(row['sender_handle']),
+    senderName: null,
     sentAtMs: Number(row['sent_at_ms']),
   };
   const hasAttachments = Number(row['has_attachments']) === 1;

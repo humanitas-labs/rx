@@ -89,7 +89,13 @@ export function Thread(props: {
   );
 }
 
-function ThreadNodeView({ node, onImageSettled }: { node: ThreadNode; onImageSettled: () => void }) {
+function ThreadNodeView({
+  node,
+  onImageSettled,
+}: {
+  node: ThreadNode;
+  onImageSettled: () => void;
+}) {
   switch (node.kind) {
     case 'separator':
       return <div className="thread-date">{node.label}</div>;
@@ -112,7 +118,9 @@ function MessageView({
   const attachments = item.attachments;
   return (
     <div className={`message ${out ? 'out' : 'in'} ${node.groupStart ? 'group-start' : ''}`}>
-      {node.showSender && <div className="sender-label">{item.base.senderHandle ?? '?'}</div>}
+      {node.showSender && (
+        <div className="sender-label">{item.base.senderName ?? item.base.senderHandle ?? '?'}</div>
+      )}
       {node.replySnippet !== null && <div className="reply-preview">↩︎ {node.replySnippet}</div>}
       {attachments.map((attachment) => (
         <AttachmentBlock key={attachment.guid} attachment={attachment} onSettled={onImageSettled} />

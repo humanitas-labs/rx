@@ -137,6 +137,33 @@ describe('seen watermark', () => {
     store.receiveInbound(CHAT, ref(11), 3_000);
     expect(store.getConversation(CHAT)?.seenThrough).toEqual({ guid: 'G-10', rowId: 10 });
   });
+
+  it('markUnseen clears the watermark and leaves triage state alone', () => {
+    store.markSeen(CHAT, ref(10), 1_000);
+    store.archive(CHAT, ref(10), 2_000);
+    store.markUnseen(CHAT, 3_000);
+    expect(store.getConversation(CHAT)).toMatchObject({
+      state: { kind: 'archived' },
+      seenThrough: null,
+      updatedAt: 3_000,
+    });
+  });
+
+  it('markUnseen on a missing or already-cleared row is a no-op', () => {
+    store.markUnseen(CHAT, 1_000);
+    expect(store.getConversation(CHAT)).toBeNull();
+    store.markSeen(CHAT, ref(10), 2_000);
+    store.markUnseen(CHAT, 3_000);
+    store.markUnseen(CHAT, 4_000);
+    expect(store.getConversation(CHAT)?.seenThrough).toBeNull();
+  });
+
+  it('markSeen after markUnseen advances the watermark again', () => {
+    store.markSeen(CHAT, ref(10), 1_000);
+    store.markUnseen(CHAT, 2_000);
+    store.markSeen(CHAT, ref(10), 3_000);
+    expect(store.getConversation(CHAT)?.seenThrough).toEqual({ guid: 'G-10', rowId: 10 });
+  });
 });
 
 describe('spaces', () => {

@@ -171,6 +171,19 @@ describe('rx unread', () => {
     });
     expect(conversations.find((c) => c.chatGuid === DIRECT)?.unread).toBe(true);
   });
+
+  it('markUnseen restores rx unread after markSeen', async () => {
+    await invoke('workflow.markSeen', { chatGuid: DIRECT });
+    await invoke('workflow.markUnseen', { chatGuid: DIRECT });
+    const { conversations } = await invoke('conversations.list', {
+      view: 'inbox',
+      space: 'all',
+      limit: 50,
+    });
+    const direct = conversations.find((c) => c.chatGuid === DIRECT);
+    expect(direct?.unread).toBe(true);
+    expect(direct?.sourceUnreadCount).toBe(1);
+  });
 });
 
 describe('spaces scoping', () => {

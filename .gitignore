@@ -15,3 +15,6 @@ out/
 release/
 target/
 *.node
+
+# Compiled contacts helper (built by `pnpm build:contacts`)
+apps/desktop/build/rx-contacts

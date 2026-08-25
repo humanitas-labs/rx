@@ -4,6 +4,7 @@
 // result to ipcMain.
 
 import type { BodyDecoder } from '@rx/apple-body-decoder';
+import { createFallbackBridge, type ContactsBridge } from '@rx/apple-contacts';
 import type { CommandName, SpaceScope } from '@rx/contract';
 import {
   composeConversationViews,
@@ -36,6 +37,8 @@ export interface AppServices {
   store: WorkflowStore;
   messagesDbPath: string;
   now?: () => number;
+  /** Handle→name resolution (ADR-005); defaults to the fallback bridge. */
+  contacts?: ContactsBridge;
   /** Overridable so tests can fake Messages automation. */
   automation?: SendAutomation;
   deliveryTiming?: DeliveryTiming;
@@ -66,31 +69,96 @@ export function createCommands(services: AppServices): CommandHandlers {
     );
   }
 
+  const contacts = services.contacts ?? createFallbackBridge();
+
+  async function nameMap(handles: Iterable<string>): Promise<Map<string, string>> {
+    const unique = [...new Set(handles)];
+    if (unique.length === 0) {
+      return new Map();
+    }
+    const resolved = await contacts.resolve(unique);
+    const names = new Map<string, string>();
+    for (const entry of resolved) {
+      if (entry.displayName !== null) {
+        names.set(entry.handle, entry.displayName);
+      }
+    }
+    return names;
+  }
+
+  // Unnamed conversations title as their participants; resolved contact
+  // names replace raw handles wherever the address book knows them. Group
+  // chats with an explicit display name keep it, like Messages.app.
+  async function withContactNames(views: CoreConversationView[]): Promise<CoreConversationView[]> {
+    const names = await nameMap(
+      views.filter((view) => view.displayName === null).flatMap((view) => view.participantHandles),
+    );
+    if (names.size === 0) {
+      return views;
+    }
+    return views.map((view) =>
+      view.displayName !== null
+        ? view
+        : {
+            ...view,
+            displayName:
+              view.participantHandles.map((handle) => names.get(handle) ?? handle).join(', ') ||
+              null,
+          },
+    );
+  }
+
   return {
     'app.capabilities': () => checkCapabilities(services.messagesDbPath),
 
-    'conversations.list': ({ view, space, limit }) => {
+    'conversations.list': async ({ view, space, limit }) => {
       const summaries = listConversationSummaries(requireReader(), {
         limit: SOURCE_WINDOW,
         preview: preview(),
       });
-      const selected = selectConversations(composeViews(summaries), view, space);
+      const selected = selectConversations(
+        await withContactNames(composeViews(summaries)),
+        view,
+        space,
+      );
       return { conversations: selected.slice(0, limit) };
     },
 
-    'conversations.search': ({ query, space, limit }) => {
+    'conversations.search': async ({ query, space, limit }) => {
       const reader = requireReader();
       const chatGuids = searchChatGuids(reader, query, limit, preview());
       if (chatGuids.length === 0) {
         return { conversations: [] };
       }
       const summaries = listConversationSummaries(reader, { limit, chatGuids, preview: preview() });
-      const scoped = composeViews(summaries).filter((row) => inScope(row.spaceId, space));
+      const scoped = (await withContactNames(composeViews(summaries))).filter((row) =>
+        inScope(row.spaceId, space),
+      );
       return { conversations: scoped.sort((a, b) => b.lastActivityAtMs - a.lastActivityAtMs) };
     },
 
-    'thread.page': ({ chatGuid, limit, beforeRowId }) =>
-      pageMessages(requireReader(), services.decoder, chatGuid, { limit, beforeRowId }),
+    'thread.page': async ({ chatGuid, limit, beforeRowId }) => {
+      const page = pageMessages(requireReader(), services.decoder, chatGuid, {
+        limit,
+        beforeRowId,
+      });
+      const names = await nameMap(
+        page.items.flatMap((item) =>
+          item.base.senderHandle === null ? [] : [item.base.senderHandle],
+        ),
+      );
+      if (names.size === 0) {
+        return page;
+      }
+      return {
+        ...page,
+        items: page.items.map((item) => {
+          const senderName =
+            item.base.senderHandle === null ? null : (names.get(item.base.senderHandle) ?? null);
+          return senderName === null ? item : { ...item, base: { ...item.base, senderName } };
+        }),
+      };
+    },
 
     'compose.send': async ({ target, text }) => {
       const outcome = await deliver(
@@ -135,6 +203,11 @@ export function createCommands(services: AppServices): CommandHandlers {
       if (refs.latest !== null) {
         services.store.markSeen(chatGuid, refs.latest, now());
       }
+      return {};
+    },
+
+    'workflow.markUnseen': ({ chatGuid }) => {
+      services.store.markUnseen(chatGuid, now());
       return {};
     },
 

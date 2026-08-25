@@ -32,6 +32,7 @@ function text(
       rowId: 0,
       isFromMe: overrides.isFromMe ?? false,
       senderHandle: overrides.senderHandle ?? '+15550000001',
+      senderName: null,
       sentAtMs: atMs,
     },
     text: overrides.text ?? `message ${guid}`,
@@ -57,6 +58,7 @@ function tapback(
       rowId: 0,
       isFromMe: overrides.isFromMe ?? false,
       senderHandle: overrides.senderHandle ?? '+15550000001',
+      senderName: null,
       sentAtMs: atMs,
     },
     tapbackType: type,
@@ -135,13 +137,27 @@ describe('assembleThread', () => {
   it('formats group announcements', () => {
     const rename: MessageItemView = {
       kind: 'group-event',
-      base: { guid: 'E1', rowId: 0, isFromMe: false, senderHandle: 'x@example.com', sentAtMs: T0 },
+      base: {
+        guid: 'E1',
+        rowId: 0,
+        isFromMe: false,
+        senderHandle: 'x@example.com',
+        senderName: null,
+        sentAtMs: T0,
+      },
       itemType: 2,
       groupTitle: 'New Name',
     };
     const left: MessageItemView = {
       kind: 'group-event',
-      base: { guid: 'E2', rowId: 0, isFromMe: true, senderHandle: null, sentAtMs: T0 + 1_000 },
+      base: {
+        guid: 'E2',
+        rowId: 0,
+        isFromMe: true,
+        senderHandle: null,
+        senderName: null,
+        sentAtMs: T0 + 1_000,
+      },
       itemType: 3,
       groupTitle: null,
     };

@@ -86,6 +86,8 @@ export const messageBaseSchema = z.object({
   rowId: z.number().int(),
   isFromMe: z.boolean(),
   senderHandle: z.string().nullable(),
+  /** Contact name for the sender handle; null when unresolved. */
+  senderName: z.string().nullable(),
   sentAtMs: z.number(),
 });
 
@@ -283,6 +285,10 @@ export const commands = {
     response: z.object({ state: workflowStateSchema }),
   },
   'workflow.markSeen': {
+    request: z.object({ chatGuid: z.string() }),
+    response: z.object({}),
+  },
+  'workflow.markUnseen': {
     request: z.object({ chatGuid: z.string() }),
     response: z.object({}),
   },

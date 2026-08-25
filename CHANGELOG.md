@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.10.0 — 2026.08.25
+
+Contact names, mark-unread, and composer polish.
+
+- Conversation titles and group sender labels resolve through a signed
+  `rx-contacts` helper (ADR-005). The snapshot stays in memory; denial falls
+  back to Messages display names and raw handles. electron-builder signs the
+  helper with the app identity and the address-book entitlement.
+- `u`, the palette, and the row menu mark a conversation unread in rx
+  (`workflow.markUnseen`). Apple's `is_read` is untouched. An open chat stays
+  unread until selection leaves it.
+- Composer caret is a 2px overlay (iss-0007). Bubble inset tightened to 8×14.
+- Pre-implementation `spikes/apple-platform` and the platform-findings note
+  are retired; production modules own those paths.
+
 ## 0.9.0 — 2026.08.24
 
 Live source events and the background lifecycle (plan step 11).

@@ -37,6 +37,7 @@ export function Shell() {
   const [searching, setSearching] = useState(false);
   const [listError, setListError] = useState<string | null>(null);
   const [selectedGuid, setSelectedGuid] = useState<string | null>(null);
+  const [heldUnseen, setHeldUnseen] = useState<string | null>(null);
   const [filterQuery, setFilterQuery] = useState('');
   const [overlay, setOverlay] = useState<OverlayKind>('none');
   const [overlayTarget, setOverlayTarget] = useState<string | null>(null);
@@ -57,6 +58,12 @@ export function Shell() {
 
   const refresh = useCallback(() => setRefreshTick((t) => t + 1), []);
   const query = filterQuery.trim();
+
+  useEffect(() => {
+    if (heldUnseen !== null && selectedGuid !== heldUnseen) {
+      setHeldUnseen(null);
+    }
+  }, [selectedGuid, heldUnseen]);
 
   // ---- data loading -------------------------------------------------------
 
@@ -235,6 +242,27 @@ export function Shell() {
     [refresh],
   );
 
+  const markUnread = useCallback(
+    (guid?: string) => {
+      const chatGuid = guid ?? selectedGuid;
+      if (chatGuid === null) {
+        return;
+      }
+      if (chatGuid === selectedGuid) {
+        setHeldUnseen(chatGuid);
+      }
+      void window.rx.invoke('workflow.markUnseen', { chatGuid }).then(() => {
+        setConversations(
+          (rows) =>
+            rows?.map((row) => (row.chatGuid === chatGuid ? { ...row, unread: true } : row)) ??
+            null,
+        );
+        refresh();
+      });
+    },
+    [selectedGuid, refresh],
+  );
+
   const runCommand = useCallback(
     (id: string) => {
       switch (id) {
@@ -296,6 +324,8 @@ export function Shell() {
             void window.rx.invoke('conversation.openInMessages', { chatGuid: selectedGuid });
           }
           return;
+        case 'conv.markUnseen':
+          return markUnread();
         case 'composer.send':
           sendRef.current?.();
           return;
@@ -311,7 +341,7 @@ export function Shell() {
           }
       }
     },
-    [moveSelection, selectedGuid, filterQuery, selectSpace, openOverlay, triage, spaces],
+    [moveSelection, selectedGuid, filterQuery, selectSpace, openOverlay, triage, spaces, markUnread],
   );
 
   // The palette registry: same command ids, with labels, shortcuts, and
@@ -381,6 +411,12 @@ export function Shell() {
         hasSelection ? null : 'no conversation selected',
       ),
       entry(
+        'conv.markUnseen',
+        'Mark unread',
+        'u',
+        hasSelection ? null : 'no conversation selected',
+      ),
+      entry(
         'composer.send',
         'Send message',
         '⌘↩',
@@ -419,6 +455,10 @@ export function Shell() {
         run: () => void window.rx.invoke('conversation.openInMessages', { chatGuid: guid }),
       });
       items.push({
+        label: 'Mark unread',
+        run: () => markUnread(guid),
+      });
+      items.push({
         label: 'Move to Space…',
         separator: true,
         run: () => openOverlay('move', guid),
@@ -437,7 +477,7 @@ export function Shell() {
       });
       return items;
     },
-    [visible, spaces, triage, openOverlay, assign],
+    [visible, spaces, triage, openOverlay, assign, markUnread],
   );
 
   // ---- window key handling ------------------------------------------------
@@ -549,6 +589,7 @@ export function Shell() {
               rows?.map((row) => (row.chatGuid === guid ? { ...row, unread: false } : row)) ?? null,
           )
         }
+        suppressSeen={selectedGuid !== null && selectedGuid === heldUnseen}
         onSent={refresh}
         sendRef={sendRef}
       />

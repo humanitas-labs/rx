@@ -22,7 +22,8 @@ All from the repository root:
 | `pnpm test:rust` | Rust tests for the decoder crate. |
 | `pnpm lint` / `pnpm lint:rust` | eslint; clippy with warnings as errors. |
 | `pnpm build` | Build all packages and app bundles. |
-| `pnpm package` | Build and package the signed macOS app into `apps/desktop/release/`. |
+| `pnpm package` | Build the Contacts helper, then package the signed macOS app into `apps/desktop/release/`. |
+| `pnpm --filter @rx/desktop build:contacts` | Compile and unsigned-strip `rx-contacts` (electron-builder signs it with the app). |
 
 ## Workspace layout
 

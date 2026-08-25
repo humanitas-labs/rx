@@ -29,6 +29,8 @@ export interface WorkflowStore {
   snooze(chat: ChatGuid, latestInbound: MessageRef | null, wakeAt: number, now: number): void;
   restore(chat: ChatGuid, now: number): void;
   markSeen(chat: ChatGuid, latest: MessageRef, now: number): void;
+  /** Clear the seen watermark. No row, or an already-cleared watermark, is a no-op. */
+  markUnseen(chat: ChatGuid, now: number): void;
   receiveInbound(chat: ChatGuid, message: MessageRef, now: number): ResurfaceOutcome;
   verifyOutbound(chat: ChatGuid, message: MessageRef, now: number): ResurfaceOutcome;
   /** Move every snooze whose wake time has passed to Inbox; returns the woken chats. */
@@ -168,6 +170,16 @@ export function openWorkflowStore(path: string): WorkflowStore {
              updated_at = excluded.updated_at
            WHERE excluded.seen_through_rowid > COALESCE(conversation_state.seen_through_rowid, -1)`,
         ).run(chat, latest.guid, latest.rowId, now);
+      });
+    },
+
+    markUnseen(chat, now) {
+      tx(() => {
+        db.prepare(
+          `UPDATE conversation_state
+           SET seen_through_guid = NULL, seen_through_rowid = NULL, updated_at = ?
+           WHERE chat_guid = ? AND seen_through_rowid IS NOT NULL`,
+        ).run(now, chat);
       });
     },
 

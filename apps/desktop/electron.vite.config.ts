@@ -9,7 +9,13 @@ export default defineConfig({
     // root where electron-builder cannot collect them.
     plugins: [
       externalizeDepsPlugin({
-        exclude: ['@rx/contract', '@rx/core', '@rx/apple-body-decoder', 'zod'],
+        exclude: [
+          '@rx/contract',
+          '@rx/core',
+          '@rx/apple-body-decoder',
+          '@rx/apple-contacts',
+          'zod',
+        ],
       }),
     ],
     resolve: {

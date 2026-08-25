@@ -2,6 +2,7 @@
 
 import { describe, expect, it } from 'vitest';
 
+import { caretVisible } from '../../src/renderer/src/features/compose/ComposerField';
 import { validHandle } from '../../src/renderer/src/features/compose/compose';
 
 describe('validHandle', () => {
@@ -17,5 +18,14 @@ describe('validHandle', () => {
     expect(validHandle('not a handle')).toBeNull();
     expect(validHandle('user@')).toBeNull();
     expect(validHandle('+1555abc0001')).toBeNull();
+  });
+});
+
+describe('caretVisible', () => {
+  it('shows only a focused collapsed caret outside IME composition', () => {
+    expect(caretVisible({ focused: true, collapsed: true, composing: false })).toBe(true);
+    expect(caretVisible({ focused: false, collapsed: true, composing: false })).toBe(false);
+    expect(caretVisible({ focused: true, collapsed: false, composing: false })).toBe(false);
+    expect(caretVisible({ focused: true, collapsed: true, composing: true })).toBe(false);
   });
 });

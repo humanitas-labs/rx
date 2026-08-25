@@ -5,6 +5,7 @@
 
 import { useRef, useState } from 'react';
 
+import { ComposerField } from '@/features/compose/ComposerField';
 import { FAILURE_TEXT, validHandle } from '@/features/compose/compose';
 
 export function NewConversation(props: {
@@ -72,7 +73,7 @@ export function NewConversation(props: {
         {handle.trim().length > 0 && target === null && (
           <div className="compose-hint">Enter a full phone number or email address.</div>
         )}
-        <textarea
+        <ComposerField
           className="compose-text"
           placeholder="Message"
           rows={3}

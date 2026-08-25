@@ -6,7 +6,9 @@ Last updated: `2026.08.24`
 
 **Supersedes:** [ADR-001](001-application-architecture.md)
 
-**Revised by:** [ADR-003](003-wasm-decoder-boundary.md) (decoder boundary: WASM default, Node-API fallback)
+**Revised by:** [ADR-003](003-wasm-decoder-boundary.md) (decoder boundary:
+WASM default, Node-API fallback) and [ADR-005](005-contacts-helper.md)
+(Contacts boundary: signed Swift helper)
 
 > Build rx as an Electron application with a TypeScript main process, a narrow
 > preload contract, and a React renderer. Keep rx’s product logic in TypeScript
@@ -32,8 +34,10 @@ Last updated: `2026.08.24`
   payload without owning the rest of the Apple source module.
 - Resolve contact handles through Apple’s supported Contacts framework behind a
   separate native bridge. Fall back to Messages display names and raw handles.
-- Use a bundled helper process only if the decoder cannot be isolated safely as
-  a Node-API addon. Do not make a helper the default application architecture.
+- Use a bundled decoder helper process only if the decoder cannot be isolated
+  safely as a Node-API addon. Do not make a helper the default application
+  architecture. ADR-005 separately permits a narrow Contacts helper because it
+  owns the supported macOS framework call rather than application logic.
 - Send through the Messages.app scripting command and verify the resulting
   source record.
 - Define rx domain types independently of the existing `imsg` CLI.

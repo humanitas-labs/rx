@@ -411,7 +411,7 @@ textarea::placeholder {
 
 .bubble {
   max-width: 46%;
-  padding: 9px 16px;
+  padding: 8px 14px;
   border-radius: 22px;
   font-size: 12.3px;
   line-height: 18px;
@@ -558,6 +558,45 @@ textarea::placeholder {
   border-radius: 16px;
   font-size: 13px;
   resize: none;
+}
+
+.composer-field {
+  position: relative;
+  width: 100%;
+}
+
+.composer-field textarea {
+  caret-color: transparent;
+  display: block;
+  width: 100%;
+}
+
+.composer-mirror {
+  position: absolute;
+  left: 0;
+  top: 0;
+  overflow: hidden;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.composer-caret {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--bubble-out);
+  pointer-events: none;
+  animation: composer-caret-blink 1.06s step-end infinite;
+}
+
+@keyframes composer-caret-blink {
+  50% {
+    opacity: 0;
+  }
 }
 
 /* ---- placeholders ---- */

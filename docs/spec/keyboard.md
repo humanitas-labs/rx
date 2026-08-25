@@ -66,6 +66,7 @@ Insert mode.
 | `1` | Select view 1 | Opens Inbox |
 | `2` | Select view 2 | Opens Snoozed |
 | `3` | Select view 3 | Opens Archive |
+| `u` | Mark conversation unread | Rewinds the rx seen watermark; Apple's `is_read` is not touched |
 | `4` | Reserved view slot | Unbound until a fourth workflow view is approved |
 | `g s` | Go to Space | Opens the Space selector |
 | `Cmd-K` | Open command palette | Opens the global command palette |

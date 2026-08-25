@@ -126,7 +126,9 @@ function snippetOf(item: Extract<MessageItemView, { kind: 'text' }>): string {
 }
 
 function announcementText(item: Extract<MessageItemView, { kind: 'group-event' }>): string {
-  const who = item.base.isFromMe ? 'You' : (item.base.senderHandle ?? 'Someone');
+  const who = item.base.isFromMe
+    ? 'You'
+    : (item.base.senderName ?? item.base.senderHandle ?? 'Someone');
   switch (item.itemType) {
     case 2:
       return item.groupTitle !== null

@@ -52,8 +52,11 @@ is reported as a failure.
   keeps working again as soon as it is re-granted, without a relaunch.
 - **Automation (Messages)** — requested by macOS on the first send. Denying
   it disables sending only; reading is unaffected.
-- **Contacts** — planned for name resolution; not yet requested. Participant
-  handles are shown until then.
+- **Contacts** — requested to resolve participant phone numbers and email
+  addresses to display names through Apple’s Contacts framework. rx loads a
+  read-only snapshot through its signed helper, keeps the lookup index in
+  memory, and never stores contact cards or names. Denial falls back to
+  Messages display names and raw handles.
 
 ## What rx does not do
 

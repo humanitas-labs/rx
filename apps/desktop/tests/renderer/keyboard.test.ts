@@ -61,6 +61,7 @@ describe('event priority (spec §5)', () => {
     for (const mode of ['insert', 'filter'] as const) {
       const state: KeyState = { mode, chordPending: false };
       expect(resolveKey(state, key({ key: 'j', inEditable: true }))).toEqual({ type: 'pass' });
+      expect(resolveKey(state, key({ key: 'u', inEditable: true }))).toEqual({ type: 'pass' });
       expect(resolveKey(state, key({ key: '1', inEditable: true }))).toEqual({ type: 'pass' });
       expect(resolveKey(state, key({ key: '/', inEditable: true }))).toEqual({ type: 'pass' });
     }
@@ -80,6 +81,7 @@ describe('navigation mode map (spec §3.1)', () => {
     ['1', 'view.inbox'],
     ['2', 'view.snoozed'],
     ['3', 'view.archive'],
+    ['u', 'conv.markUnseen'],
     ['Escape', 'nav.escape'],
   ])('%s → %s', (k, id) => {
     expect(resolveKey(nav, key({ key: k }))).toEqual({ type: 'command', id });

@@ -4,6 +4,7 @@ import { pathToFileURL } from 'node:url';
 import { BrowserWindow, app, net, powerMonitor, protocol, shell } from 'electron';
 
 import { createDecoder } from '@rx/apple-body-decoder';
+import { createContactsBridge, createHelperLoader } from '@rx/apple-contacts';
 import { ATTACHMENT_PROTOCOL } from '@rx/contract';
 import { openWorkflowStore } from '@rx/core';
 import decoderWasmPath from '../../../../packages/apple-body-decoder/dist/decoder.wasm?asset';
@@ -100,6 +101,15 @@ void app.whenReady().then(async () => {
     decoder: await createDecoder(readFileSync(decoderWasmPath)),
     store: openWorkflowStore(join(userData, 'workflow.db')),
     messagesDbPath,
+    // Contacts via the spawned rx-contacts helper (ADR-005). The bridge
+    // never blocks reads; until the snapshot loads, raw handles render.
+    contacts: createContactsBridge(
+      createHelperLoader(
+        app.isPackaged
+          ? join(process.resourcesPath, 'rx-contacts')
+          : join(app.getAppPath(), 'build', 'rx-contacts'),
+      ),
+    ),
   };
   registerCommands(createCommands(services));
 
@@ -143,6 +153,12 @@ void app.whenReady().then(async () => {
     emit: (event, payload) => sendEvent(window, event, payload),
   });
   powerMonitor.on('resume', () => runtime.wakePass());
+
+  // Once the contacts snapshot lands, refresh views so names replace the
+  // handles that rendered while it loaded.
+  void services.contacts.ready.then(() =>
+    sendEvent(window, 'conversations.changed', { chatGuids: [] }),
+  );
 
   window.on('closed', () => {
     clearInterval(heartbeat);
