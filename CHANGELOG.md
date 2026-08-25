@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.7.0 — 2026.08.24
+
+The conversation reader (plan step 9).
+
+- Thread assembly: time separators (first item, then after an hour of
+  silence), same-sender runs within a minute, tapbacks netted onto their
+  target bubbles (standard glyphs plus custom-emoji reactions; removals
+  cancel adds), reply snippets from `thread_originator_guid`, formatted
+  group announcements, and typed fallbacks — all pure and unit-tested.
+- Attachments ride on thread items as metadata (name, type, size, local
+  presence) and render inline: images load over a new read-only
+  `rx-attachment://` protocol that resolves the GUID back to the local file
+  under `~/Library/Messages` in main — nothing is copied into rx storage,
+  and the renderer never sees or supplies filesystem paths. Undecodable
+  images (HEIC) and non-images fall back to a file chip; attachment-only
+  messages render without a phantom bubble (U+FFFC placeholders stripped).
+- Older history pages in from the top without scroll jumps (scroll-height
+  anchoring), latest page first, retry on scroll after a failed page.
+- Open in Messages from the row context menu, reader header menu, and the
+  palette: direct chats deep-link to the handle, groups bring Messages.app
+  forward.
+- The reply and custom-emoji columns are probed per database and substituted
+  with NULL on older schemas, so paging works either way.
+- Reader thread gutters tightened from the frame's 78/84 px to 40/44 px by
+  request.
+
 ## 0.6.1 — 2026.08.24
 
 Design-fidelity pass against the source frames (48-2191, 48-2301), built

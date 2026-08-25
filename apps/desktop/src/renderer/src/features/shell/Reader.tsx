@@ -1,14 +1,21 @@
-// Conversation reader (plan step 7 shell version): latest page, typed
-// fallbacks, seen watermark on open, draft-preserving composer. Full thread
-// treatments (attachments, tapback grouping, paging) land with step 9;
-// sending lands with step 10.
+// Conversation reader (plan step 9): latest page first with older paging,
+// full thread treatments in features/thread/, seen watermark on open,
+// draft-preserving composer. Sending lands with step 10.
 
-import { useEffect, useState, type MutableRefObject, type RefObject } from 'react';
+import { useCallback, useEffect, useState, type MutableRefObject, type RefObject } from 'react';
 
 import type { ConversationView, MessageItemView } from '@rx/contract';
 
 import chevronIcon from '@/assets/chevron.svg';
+import { Thread } from '@/features/thread/Thread';
 import { Icon } from '@/ui/Icon';
+
+const PAGE_SIZE = 50;
+
+interface ThreadState {
+  items: MessageItemView[];
+  nextBeforeRowId: number | null;
+}
 
 export function Reader(props: {
   conversation: ConversationView | null;
@@ -20,23 +27,25 @@ export function Reader(props: {
   onSeen: (chatGuid: string) => void;
 }) {
   const chatGuid = props.conversation?.chatGuid ?? null;
-  const [items, setItems] = useState<MessageItemView[] | null>(null);
+  const [thread, setThread] = useState<ThreadState | null>(null);
   const [threadError, setThreadError] = useState(false);
+  const [loadingOlder, setLoadingOlder] = useState(false);
   const [draftTick, setDraftTick] = useState(0);
 
   useEffect(() => {
     if (chatGuid === null) {
-      setItems(null);
+      setThread(null);
       return;
     }
     let cancelled = false;
-    setItems(null);
+    setThread(null);
     setThreadError(false);
+    setLoadingOlder(false);
     void window.rx
-      .invoke('thread.page', { chatGuid, limit: 50 })
+      .invoke('thread.page', { chatGuid, limit: PAGE_SIZE })
       .then((page) => {
         if (!cancelled) {
-          setItems(page.items);
+          setThread(page);
         }
       })
       .catch(() => {
@@ -51,6 +60,30 @@ export function Reader(props: {
     };
     // Keyed by conversation identity only.
   }, [chatGuid]);
+
+  const loadOlder = useCallback(() => {
+    if (chatGuid === null || thread === null || thread.nextBeforeRowId === null || loadingOlder) {
+      return;
+    }
+    setLoadingOlder(true);
+    void window.rx
+      .invoke('thread.page', {
+        chatGuid,
+        limit: PAGE_SIZE,
+        beforeRowId: thread.nextBeforeRowId,
+      })
+      .then((page) => {
+        setThread((current) =>
+          current === null
+            ? null
+            : { items: [...page.items, ...current.items], nextBeforeRowId: page.nextBeforeRowId },
+        );
+      })
+      .catch(() => {
+        // Leave the loaded pages intact; scrolling up retries.
+      })
+      .finally(() => setLoadingOlder(false));
+  }, [chatGuid, thread, loadingOlder]);
 
   if (props.conversation === null || chatGuid === null) {
     return (
@@ -81,17 +114,22 @@ export function Reader(props: {
           <Icon src={chevronIcon} width={5} height={8} color="var(--chevron)" />
         </button>
       </div>
-      <div className="thread">
-        {threadError ? (
-          <div className="placeholder">Could not load this conversation.</div>
-        ) : items === null ? (
-          <div className="placeholder">Loading…</div>
-        ) : items.length === 0 ? (
-          <div className="placeholder">No messages.</div>
-        ) : (
-          items.map((item) => <ThreadItem key={item.base.guid} item={item} />)
-        )}
-      </div>
+      {threadError ? (
+        <div className="placeholder">Could not load this conversation.</div>
+      ) : thread === null ? (
+        <div className="placeholder">Loading…</div>
+      ) : thread.items.length === 0 ? (
+        <div className="placeholder">No messages.</div>
+      ) : (
+        <Thread
+          key={chatGuid}
+          items={thread.items}
+          isGroup={props.conversation.isGroup}
+          hasOlder={thread.nextBeforeRowId !== null}
+          loadingOlder={loadingOlder}
+          onLoadOlder={loadOlder}
+        />
+      )}
       <div className="composer">
         <textarea
           ref={props.composerRef}
@@ -113,39 +151,4 @@ function initials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   const chars = parts.slice(0, 2).map((p) => (p[0] ?? '').toUpperCase());
   return chars.join('') || '?';
-}
-
-function ThreadItem({ item }: { item: MessageItemView }) {
-  switch (item.kind) {
-    case 'text':
-      return (
-        <div className={`bubble ${item.base.isFromMe ? 'out' : 'in'}`}>
-          {item.text}
-          {item.editedAtMs !== null && <span style={{ opacity: 0.6 }}> (edited)</span>}
-        </div>
-      );
-    case 'tapback':
-      return (
-        <div className="thread-note">
-          {item.base.isFromMe ? 'You' : (item.base.senderHandle ?? 'Someone')}{' '}
-          {item.added ? 'reacted to' : 'removed a reaction from'} a message
-        </div>
-      );
-    case 'group-event':
-      return (
-        <div className="thread-note">
-          {item.groupTitle !== null
-            ? `Group renamed to “${item.groupTitle}”`
-            : 'Group membership changed'}
-        </div>
-      );
-    case 'unsupported':
-      return (
-        <div className={`bubble ${item.base.isFromMe ? 'out' : 'in'}`} style={{ opacity: 0.7 }}>
-          {item.reason === 'balloon-app'
-            ? 'App message — open in Messages to view'
-            : 'Message content unavailable'}
-        </div>
-      );
-  }
 }

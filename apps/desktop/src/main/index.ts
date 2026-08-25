@@ -1,13 +1,16 @@
 import { mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { BrowserWindow, app, shell } from 'electron';
+import { pathToFileURL } from 'node:url';
+import { BrowserWindow, app, net, protocol, shell } from 'electron';
 
 import { createDecoder } from '@rx/apple-body-decoder';
+import { ATTACHMENT_PROTOCOL } from '@rx/contract';
 import { openWorkflowStore } from '@rx/core';
 import decoderWasmPath from '../../../../packages/apple-body-decoder/dist/decoder.wasm?asset';
 
 import { createCommands } from '@/app/commands';
 import {
+  attachmentPathByGuid,
   checkCapabilities,
   defaultMessagesDatabasePath,
   openMessagesDatabase,
@@ -18,6 +21,13 @@ import { registerCommand, registerCommands, sendEvent } from '@/ipc';
 // database under it — resolves to the same place (~/Library/Application
 // Support/rx) either way.
 app.setName('rx');
+
+// Attachment bytes reach the renderer over a custom read-only scheme
+// resolved by GUID in main (plan step 9) — local files are served in place,
+// never copied into rx storage, and never by renderer-supplied path.
+protocol.registerSchemesAsPrivileged([
+  { scheme: ATTACHMENT_PROTOCOL, privileges: { standard: true, stream: true } },
+]);
 
 const startedAt = Date.now();
 
@@ -91,6 +101,30 @@ void app.whenReady().then(async () => {
     messagesDbPath,
   };
   registerCommands(createCommands(services));
+
+  protocol.handle(ATTACHMENT_PROTOCOL, (request) => {
+    // attachmentUrl(): rx-attachment://attachment/<encoded guid>
+    const guid = decodeURIComponent(new URL(request.url).pathname.replace(/^\//, ''));
+    const reader = services.reader;
+    const resolved = reader === null ? null : attachmentPathByGuid(reader, guid);
+    if (resolved === null) {
+      return new Response(null, { status: 404 });
+    }
+    return net.fetch(pathToFileURL(resolved.path).toString());
+  });
+
+  // Best effort: direct chats deep-link to the handle; groups have no public
+  // URL, so just bring Messages.app forward.
+  registerCommand('conversation.openInMessages', ({ chatGuid }) => {
+    const direct = /^(iMessage|SMS);-;(.+)$/.exec(chatGuid);
+    if (direct?.[2] !== undefined) {
+      const scheme = direct[1] === 'SMS' ? 'sms' : 'imessage';
+      void shell.openExternal(`${scheme}://${encodeURIComponent(direct[2])}`);
+    } else {
+      void shell.openPath('/System/Applications/Messages.app');
+    }
+    return {};
+  });
 
   const window = createWindow();
 

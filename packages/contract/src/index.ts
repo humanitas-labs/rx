@@ -89,6 +89,28 @@ export const messageBaseSchema = z.object({
   sentAtMs: z.number(),
 });
 
+export const attachmentViewSchema = z.object({
+  guid: z.string(),
+  transferName: z.string().nullable(),
+  mimeType: z.string().nullable(),
+  totalBytes: z.number().int().nonnegative(),
+  /** The file exists locally; absolute paths never cross this boundary. */
+  present: z.boolean(),
+});
+
+export type AttachmentView = z.infer<typeof attachmentViewSchema>;
+
+/**
+ * Custom protocol serving locally present attachment bytes to the renderer
+ * (plan step 9). Main resolves the GUID back to the local file — nothing is
+ * copied into rx storage.
+ */
+export const ATTACHMENT_PROTOCOL = 'rx-attachment';
+
+export function attachmentUrl(guid: string): string {
+  return `${ATTACHMENT_PROTOCOL}://attachment/${encodeURIComponent(guid)}`;
+}
+
 export const messageItemSchema = z.discriminatedUnion('kind', [
   z.object({
     kind: z.literal('text'),
@@ -97,6 +119,9 @@ export const messageItemSchema = z.discriminatedUnion('kind', [
     spans: z.array(spanSchema),
     editedAtMs: z.number().nullable(),
     hasAttachments: z.boolean(),
+    attachments: z.array(attachmentViewSchema),
+    /** GUID of the message this replies to; null for top-level messages. */
+    replyToGuid: z.string().nullable(),
   }),
   z.object({
     kind: z.literal('tapback'),
@@ -104,6 +129,8 @@ export const messageItemSchema = z.discriminatedUnion('kind', [
     tapbackType: z.number().int(),
     added: z.boolean(),
     targetMessageGuid: z.string().nullable(),
+    /** Custom-emoji reactions carry the emoji itself. */
+    emoji: z.string().nullable(),
   }),
   z.object({
     kind: z.literal('group-event'),
@@ -117,6 +144,7 @@ export const messageItemSchema = z.discriminatedUnion('kind', [
     reason: z.enum(['balloon-app', 'undecodable-body', 'empty']),
     balloonBundleId: z.string().nullable(),
     hasAttachments: z.boolean(),
+    attachments: z.array(attachmentViewSchema),
   }),
 ]);
 
@@ -196,6 +224,11 @@ export const commands = {
       items: z.array(messageItemSchema),
       nextBeforeRowId: z.number().int().nullable(),
     }),
+  },
+  /** Hand the conversation to Messages.app (best effort; step 9). */
+  'conversation.openInMessages': {
+    request: z.object({ chatGuid: z.string() }),
+    response: z.object({}),
   },
   'workflow.archive': {
     request: z.object({ chatGuid: z.string() }),

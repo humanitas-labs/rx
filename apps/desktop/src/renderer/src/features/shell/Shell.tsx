@@ -273,6 +273,11 @@ export function Shell() {
             openOverlay('move', selectedGuid);
           }
           return;
+        case 'conv.openInMessages':
+          if (selectedGuid !== null) {
+            void window.rx.invoke('conversation.openInMessages', { chatGuid: selectedGuid });
+          }
+          return;
         default:
           if (id.startsWith('space.number.')) {
             const slot = Number(id.slice('space.number.'.length)) - 2;
@@ -346,6 +351,12 @@ export function Shell() {
         undefined,
         hasSelection ? null : 'no conversation selected',
       ),
+      entry(
+        'conv.openInMessages',
+        'Open in Messages',
+        undefined,
+        hasSelection ? null : 'no conversation selected',
+      ),
       entry('composer.send', 'Send message', '⌘↩', 'sending arrives with delivery verification'),
       entry('compose.new', 'New conversation', undefined, 'new conversations arrive in a later step'),
     ];
@@ -375,6 +386,10 @@ export function Shell() {
         items.push({ label: 'Restore to Inbox', run: () => triage('restore', guid) });
       }
       items.push({ label: 'Snooze…', run: () => openOverlay('snooze', guid) });
+      items.push({
+        label: 'Open in Messages',
+        run: () => void window.rx.invoke('conversation.openInMessages', { chatGuid: guid }),
+      });
       items.push({
         label: 'Move to Space…',
         separator: true,

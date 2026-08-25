@@ -35,6 +35,8 @@ export interface FixtureMessage {
   groupTitle?: string;
   associatedGuid?: string;
   associatedType?: number;
+  associatedEmoji?: string;
+  replyToGuid?: string;
   balloonBundleId?: string;
   editedAtMs?: number;
   hasAttachments?: boolean;
@@ -43,11 +45,14 @@ export interface FixtureMessage {
 export class MessagesFixture {
   readonly path: string;
   private readonly db: DatabaseSync;
+  /** Omit reply/emoji columns to model pre-Big Sur chat.db schemas. */
+  private readonly legacyColumns: boolean;
 
-  constructor(dir: string, options: { omitTables?: string[] } = {}) {
+  constructor(dir: string, options: { omitTables?: string[]; legacyColumns?: boolean } = {}) {
     this.path = join(dir, 'chat.db');
     this.db = new DatabaseSync(this.path);
     const omit = new Set(options.omitTables ?? []);
+    this.legacyColumns = options.legacyColumns ?? false;
     const tables: Record<string, string> = {
       chat: `CREATE TABLE chat (
                ROWID INTEGER PRIMARY KEY, guid TEXT NOT NULL UNIQUE,
@@ -64,6 +69,7 @@ export class MessagesFixture {
                   group_title TEXT,
                   associated_message_guid TEXT,
                   associated_message_type INTEGER NOT NULL DEFAULT 0,
+                  ${options.legacyColumns ? '' : 'associated_message_emoji TEXT, thread_originator_guid TEXT,'}
                   balloon_bundle_id TEXT,
                   date_edited INTEGER NOT NULL DEFAULT 0,
                   cache_has_attachments INTEGER NOT NULL DEFAULT 0,
@@ -100,12 +106,20 @@ export class MessagesFixture {
   }
 
   addMessage(m: FixtureMessage) {
+    const modern = this.legacyColumns
+      ? { columns: '', placeholders: '', values: [] }
+      : {
+          columns: 'associated_message_emoji, thread_originator_guid,',
+          placeholders: '?, ?,',
+          values: [m.associatedEmoji ?? null, m.replyToGuid ?? null],
+        };
     this.db
       .prepare(
         `INSERT INTO message (ROWID, guid, text, attributedBody, date, is_from_me, is_read,
            item_type, group_title, associated_message_guid, associated_message_type,
+           ${modern.columns}
            balloon_bundle_id, date_edited, cache_has_attachments, handle_id)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ${modern.placeholders} ?, ?, ?, ?)`,
       )
       .run(
         m.rowId,
@@ -119,6 +133,7 @@ export class MessagesFixture {
         m.groupTitle ?? null,
         m.associatedGuid ?? null,
         m.associatedType ?? 0,
+        ...modern.values,
         m.balloonBundleId ?? null,
         m.editedAtMs ? msToAppleNs(m.editedAtMs) : 0,
         m.hasAttachments ? 1 : 0,
