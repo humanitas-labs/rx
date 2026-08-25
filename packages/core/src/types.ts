@@ -12,6 +12,16 @@ export type SourceCursor = number;
 export type WorkflowStateKind = 'inbox' | 'archived' | 'snoozed';
 
 /**
+ * One source message named both ways: GUID for durable identity, ROWID as the
+ * local ordering cursor. Watermark comparisons use the cursor; the GUID
+ * survives a source-database rebuild.
+ */
+export interface MessageRef {
+  guid: MessageGuid;
+  rowId: SourceCursor;
+}
+
+/**
  * The rx workflow state attached to one conversation. Exactly one per
  * conversation; it never alters the conversation in Messages.app.
  */
