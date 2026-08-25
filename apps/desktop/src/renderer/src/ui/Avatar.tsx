@@ -1,10 +1,15 @@
 // Conversation avatar: the contact's photo when the address book has one,
-// initials otherwise. The photo layers over the initials and stays invisible
-// until it decodes, so a handle with no photo shows initials rather than a
-// broken-image glyph — most handles have no photo.
+// initials otherwise. The photo layers over the initials and paints only once
+// this handle's own image has decoded — so a handle with no photo shows
+// initials rather than a broken glyph, and switching conversations never
+// flashes the previous person's face.
+//
+// A failed load is deliberately not remembered: tab switches abort in-flight
+// image requests, and treating that as "no photo" left avatars stuck on
+// initials until the next remount.
 
 import { avatarUrl } from '@rx/contract';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 export function Avatar(props: {
   /** Name the initials are drawn from. */
@@ -16,21 +21,20 @@ export function Avatar(props: {
   handles: readonly string[];
 }): React.JSX.Element {
   const handle = props.handles[0] ?? null;
-  const [state, setState] = useState<'pending' | 'loaded' | 'failed'>('pending');
-
-  // Rows are recycled by the virtualizer: a new handle gets a fresh attempt.
-  useEffect(() => setState('pending'), [handle]);
+  const [loadedHandle, setLoadedHandle] = useState<string | null>(null);
 
   return (
     <span className="avatar">
       {initials(props.name)}
-      {handle !== null && state !== 'failed' && (
+      {handle !== null && (
         <img
-          className={`avatar-photo${state === 'loaded' ? ' loaded' : ''}`}
+          // Keyed so a new handle gets a fresh element rather than repainting
+          // the old photo while the new one decodes.
+          key={handle}
+          className={`avatar-photo${loadedHandle === handle ? ' loaded' : ''}`}
           src={avatarUrl(handle)}
           alt=""
-          onLoad={() => setState('loaded')}
-          onError={() => setState('failed')}
+          onLoad={() => setLoadedHandle(handle)}
         />
       )}
     </span>

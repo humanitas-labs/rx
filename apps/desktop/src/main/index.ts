@@ -138,10 +138,12 @@ void app.whenReady().then(async () => {
     if (photo === null) {
       return new Response(null, { status: 404 });
     }
-    // Immutable for the process lifetime: the snapshot loads once, and a
-    // changed address book arrives with the next launch.
+    // Cacheable for the process lifetime: the snapshot loads once, and a
+    // changed address book arrives with the next launch. Without this every
+    // view switch re-requests every visible avatar, and the aborted requests
+    // that causes are what made photos flicker back to initials.
     return new Response(photo, {
-      headers: { 'content-type': 'image/jpeg', 'cache-control': 'no-cache' },
+      headers: { 'content-type': 'image/jpeg', 'cache-control': 'max-age=86400, immutable' },
     });
   });
 
