@@ -100,6 +100,24 @@ function buildThreadFixture(dir: string, options: { legacyColumns?: boolean } = 
     hasAttachments: true,
   });
   f.addAttachment(2, 7, { guid: 'AT-2', transferName: 'missing.pdf', mimeType: 'application/pdf' });
+  // Link-preview message: URL text plus hidden pluginPayloadAttachment
+  // internals that must never surface as user attachments.
+  f.addMessage({
+    rowId: 8,
+    guid: 'S-8',
+    chatRowId: 1,
+    text: 'https://example.com/',
+    atMs: T0 + 7_000,
+    handleRowId: 1,
+    hasAttachments: true,
+    balloonBundleId: 'com.apple.messages.URLBalloonProvider',
+  });
+  f.addAttachment(3, 8, {
+    guid: 'AT-3',
+    filename: '~/Library/Messages/Attachments/cc/dd/payload.pluginPayloadAttachment',
+    transferName: '11111111-2222-3333-4444-555555555555.pluginPayloadAttachment',
+    bytes: 6_000,
+  });
   return f;
 }
 
@@ -174,6 +192,17 @@ describe('step 9 paging', () => {
     >;
     expect(withFile.text).toBe('file incoming');
     expect(withFile.attachments[0]).toMatchObject({ guid: 'AT-2', present: false });
+  });
+
+  it('hides link-preview payload internals, leaving the URL text bubble', () => {
+    const page = pageMessages(reader, decoder, CHAT, { limit: 50 });
+    const link = page.items.find((i) => i.base.guid === 'S-8') as Extract<
+      MessageItem,
+      { kind: 'text' }
+    >;
+    expect(link.kind).toBe('text');
+    expect(link.text).toBe('https://example.com/');
+    expect(link.attachments).toEqual([]);
   });
 
   it('resolves attachment paths by guid only inside ~/Library/Messages', () => {

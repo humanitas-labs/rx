@@ -144,6 +144,12 @@ export function pageMessages(
 function groupAttachments(metas: AttachmentMeta[]): Map<number, AttachmentView[]> {
   const byRow = new Map<number, AttachmentView[]>();
   for (const meta of metas) {
+    // Link-preview payloads (URLBalloonProvider et al.) ride as hidden
+    // pluginPayloadAttachment files — balloon internals, not user files.
+    // Until rich link cards land, only the URL text bubble renders.
+    if (meta.transferName?.endsWith('.pluginPayloadAttachment') === true) {
+      continue;
+    }
     const views = byRow.get(meta.messageRowId) ?? [];
     views.push({
       guid: meta.guid,
