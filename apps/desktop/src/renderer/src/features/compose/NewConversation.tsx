@@ -73,14 +73,23 @@ export function NewConversation(props: {
           <div className="compose-hint">Enter a full phone number or email address.</div>
         )}
         <textarea
-          className="compose-text"
+          className={`compose-text${sending ? ' sending' : ''}`}
           placeholder="Message"
           rows={3}
           value={text}
-          disabled={sending}
+          readOnly={sending}
           onChange={(e) => {
             setText(e.target.value);
             setError(null);
+          }}
+          onKeyDown={(e) => {
+            // Enter sends; Shift+Enter inserts a newline (Messages behavior).
+            if (e.key === 'Enter' && !e.shiftKey && !e.metaKey && !e.ctrlKey && !e.altKey) {
+              if (!e.nativeEvent.isComposing) {
+                e.preventDefault();
+                send();
+              }
+            }
           }}
         />
         {error !== null && <div className="compose-error">{error}</div>}

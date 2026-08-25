@@ -187,11 +187,21 @@ export function Reader(props: {
       <div className="composer">
         <textarea
           ref={props.composerRef}
+          className={sendState.kind === 'sending' ? 'sending' : undefined}
           placeholder="Message"
           value={draft}
           rows={1}
-          disabled={sendState.kind === 'sending'}
+          readOnly={sendState.kind === 'sending'}
           onFocus={props.onComposerFocus}
+          onKeyDown={(e) => {
+            // Enter sends; Shift+Enter inserts a newline (Messages behavior).
+            if (e.key === 'Enter' && !e.shiftKey && !e.metaKey && !e.ctrlKey && !e.altKey) {
+              if (!e.nativeEvent.isComposing) {
+                e.preventDefault();
+                send();
+              }
+            }
+          }}
           onChange={(e) => {
             props.draftsRef.current.set(chatGuid, e.target.value);
             if (sendState.kind === 'failed') {
