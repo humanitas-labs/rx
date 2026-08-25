@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.2.0 — 2026.08.24
+
+Apple Messages source module (plan step 4, read side).
+
+- `apps/desktop/src/main/apple-messages/`: read-only database access via
+  `node:sqlite` (ADR-004), conversation summaries with participants and
+  unread metadata, thread paging with typed classification (text,
+  attributed-body via the WASM decoder, tapback, group event, unsupported
+  balloon/undecodable fallbacks), attachment metadata, WAL-watch + poll
+  source observer with a durable MAX(ROWID) cursor, and capability
+  reporting (permissions, schema drift, Messages.app presence).
+- Synthetic chat.db fixture (schema subset, invented conversations) plus a
+  202-byte NSArchiver typedstream fixture; 16 fixture tests cover every
+  supported content type.
+- Opt-in live diagnostic (`RX_LIVE=1`) lists 100 real conversation
+  summaries emitting statistics only: 352 ms on the development machine.
+
 ## 0.1.0 — 2026.08.24
 
 Initial workspace scaffold (plan step 3).
