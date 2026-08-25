@@ -44,6 +44,7 @@ export function Sidebar(props: {
   onFilterFocus: () => void;
   onFilterCommit: () => void;
   onOpenSpaces: () => void;
+  onCompose: () => void;
   spaceLabel: string;
 }) {
   const listRef = useRef<HTMLDivElement>(null);
@@ -83,11 +84,7 @@ export function Sidebar(props: {
   return (
     <aside className="sidebar">
       <div className="sidebar-top">
-        <button
-          className="compose-button"
-          disabled
-          title="New conversation — arrives with compose (step 10)"
-        >
+        <button className="compose-button" title="New conversation" onClick={props.onCompose}>
           <Icon src={composeIcon} width={15} height={15} />
         </button>
       </div>

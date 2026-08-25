@@ -1,12 +1,20 @@
-// Conversation reader (plan step 9): latest page first with older paging,
-// full thread treatments in features/thread/, seen watermark on open,
-// draft-preserving composer. Sending lands with step 10.
+// Conversation reader (plan steps 9–10): latest page first with older
+// paging, full thread treatments in features/thread/, seen watermark on
+// open, and a composer that sends through verified delivery — the draft
+// clears only after the outgoing record is confirmed in the source.
 
-import { useCallback, useEffect, useState, type MutableRefObject, type RefObject } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useState,
+  type MutableRefObject,
+  type RefObject,
+} from 'react';
 
-import type { ConversationView, MessageItemView } from '@rx/contract';
+import type { ConversationView, DeliveryFailureView, MessageItemView } from '@rx/contract';
 
 import chevronIcon from '@/assets/chevron.svg';
+import { FAILURE_TEXT } from '@/features/compose/compose';
 import { Thread } from '@/features/thread/Thread';
 import { Icon } from '@/ui/Icon';
 
@@ -25,12 +33,22 @@ export function Reader(props: {
   /** Open the conversation actions menu (triage, move) at this position. */
   onHeaderMenu: (x: number, y: number) => void;
   onSeen: (chatGuid: string) => void;
+  /** A send was verified — workflow state may have changed (restore). */
+  onSent: () => void;
+  /** Shell routes ⌘↩ / the palette Send command through this. */
+  sendRef: MutableRefObject<(() => void) | null>;
 }) {
   const chatGuid = props.conversation?.chatGuid ?? null;
   const [thread, setThread] = useState<ThreadState | null>(null);
   const [threadError, setThreadError] = useState(false);
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [draftTick, setDraftTick] = useState(0);
+  const [sendState, setSendState] = useState<
+    { kind: 'idle' } | { kind: 'sending' } | { kind: 'failed'; reason: DeliveryFailureView }
+  >({ kind: 'idle' });
+  // Bumps the Thread key after a verified send so it remounts scrolled to
+  // the new latest message.
+  const [sentTick, setSentTick] = useState(0);
 
   useEffect(() => {
     if (chatGuid === null) {
@@ -41,6 +59,7 @@ export function Reader(props: {
     setThread(null);
     setThreadError(false);
     setLoadingOlder(false);
+    setSendState({ kind: 'idle' });
     void window.rx
       .invoke('thread.page', { chatGuid, limit: PAGE_SIZE })
       .then((page) => {
@@ -85,6 +104,41 @@ export function Reader(props: {
       .finally(() => setLoadingOlder(false));
   }, [chatGuid, thread, loadingOlder]);
 
+  const send = useCallback(() => {
+    if (chatGuid === null || sendState.kind === 'sending') {
+      return;
+    }
+    const text = (props.draftsRef.current.get(chatGuid) ?? '').trim();
+    if (text.length === 0) {
+      return;
+    }
+    setSendState({ kind: 'sending' });
+    void window.rx
+      .invoke('compose.send', { target: { kind: 'chat', chatGuid }, text })
+      .then(({ outcome }) => {
+        if (outcome.state !== 'verified') {
+          setSendState({ kind: 'failed', reason: outcome.reason });
+          return;
+        }
+        // Verified in the source: only now does the draft clear (§4.4).
+        props.draftsRef.current.delete(chatGuid);
+        setSendState({ kind: 'idle' });
+        setSentTick((t) => t + 1);
+        props.onSent();
+        return window.rx
+          .invoke('thread.page', { chatGuid, limit: PAGE_SIZE })
+          .then((page) => setThread(page));
+      })
+      .catch(() => setSendState({ kind: 'failed', reason: 'automation-error' }));
+  }, [chatGuid, sendState.kind]);
+
+  useEffect(() => {
+    props.sendRef.current = send;
+    return () => {
+      props.sendRef.current = null;
+    };
+  }, [send]);
+
   if (props.conversation === null || chatGuid === null) {
     return (
       <main className="reader">
@@ -122,7 +176,7 @@ export function Reader(props: {
         <div className="placeholder">No messages.</div>
       ) : (
         <Thread
-          key={chatGuid}
+          key={`${chatGuid}:${sentTick}`}
           items={thread.items}
           isGroup={props.conversation.isGroup}
           hasOlder={thread.nextBeforeRowId !== null}
@@ -136,12 +190,20 @@ export function Reader(props: {
           placeholder="Message"
           value={draft}
           rows={1}
+          disabled={sendState.kind === 'sending'}
           onFocus={props.onComposerFocus}
           onChange={(e) => {
             props.draftsRef.current.set(chatGuid, e.target.value);
+            if (sendState.kind === 'failed') {
+              setSendState({ kind: 'idle' });
+            }
             setDraftTick(draftTick + 1);
           }}
         />
+        {sendState.kind === 'sending' && <div className="composer-status">Sending…</div>}
+        {sendState.kind === 'failed' && (
+          <div className="composer-status failed">{FAILURE_TEXT[sendState.reason]}</div>
+        )}
       </div>
     </main>
   );

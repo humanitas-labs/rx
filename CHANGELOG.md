@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.8.0 — 2026.08.24
+
+Compose, new conversation, and delivery verification (plan step 10).
+
+- Sending is live: the composer sends with ⌘↩ (or the palette's Send
+  message) to the open conversation, one-to-one or group. Text travels to
+  Messages automation as osascript arguments — never interpolated into
+  script source.
+- Delivery is verified, not assumed: rx records the pre-send source cursor,
+  runs the automation, and waits for the matching outgoing record in the
+  intended conversation (decoded body match — outbound bodies land in
+  attributedBody). Automation exit success without a source record reports
+  as failure, a row landing in any other conversation never matches, and an
+  identical older message can't satisfy verification.
+- Pending / verified / failed states in the composer; a failed send keeps
+  the draft, names the cause (Automation denied, Messages unavailable,
+  unconfirmed, automation error), and the draft clears only on
+  verification. A verified send restores an archived or snoozed
+  conversation to Inbox; a failed one changes nothing.
+- New conversation: the compose button (and palette command) opens an
+  overlay taking an explicit phone number or email plus the first message;
+  on verified delivery the created chat is selected in Inbox.
+  Contacts-backed search waits on the native Contacts bridge (spike 6).
+- File sending stays descoped (iss-0001); the verification model is exactly
+  what catches that platform regression's silent drop.
+
 ## 0.7.0 — 2026.08.24
 
 The conversation reader (plan step 9).

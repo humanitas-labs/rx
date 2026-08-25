@@ -151,6 +151,34 @@ export const messageItemSchema = z.discriminatedUnion('kind', [
 export type MessageItemView = z.infer<typeof messageItemSchema>;
 
 // ---------------------------------------------------------------------------
+// Compose and delivery (plan step 10)
+
+export const sendTargetSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('chat'), chatGuid: z.string().min(1) }),
+  z.object({ kind: z.literal('handle'), handle: z.string().min(1).max(320) }),
+]);
+
+export const deliveryFailureSchema = z.enum([
+  'permission-denied',
+  'messages-unavailable',
+  'automation-error',
+  'not-verified',
+]);
+
+export const deliveryOutcomeSchema = z.discriminatedUnion('state', [
+  z.object({
+    state: z.literal('verified'),
+    chatGuid: z.string(),
+    messageGuid: z.string(),
+  }),
+  z.object({ state: z.literal('failed'), reason: deliveryFailureSchema }),
+]);
+
+export type SendTargetView = z.infer<typeof sendTargetSchema>;
+export type DeliveryFailureView = z.infer<typeof deliveryFailureSchema>;
+export type DeliveryOutcomeView = z.infer<typeof deliveryOutcomeSchema>;
+
+// ---------------------------------------------------------------------------
 // Capabilities
 
 export const capabilitiesSchema = z.object({
@@ -224,6 +252,18 @@ export const commands = {
       items: z.array(messageItemSchema),
       nextBeforeRowId: z.number().int().nullable(),
     }),
+  },
+  /**
+   * Send text through Messages automation and verify it against the source
+   * (plan step 10). Resolves only after verification succeeds or fails —
+   * automation exit success alone is never reported as success.
+   */
+  'compose.send': {
+    request: z.object({
+      target: sendTargetSchema,
+      text: z.string().min(1).max(10_000),
+    }),
+    response: z.object({ outcome: deliveryOutcomeSchema }),
   },
   /** Hand the conversation to Messages.app (best effort; step 9). */
   'conversation.openInMessages': {

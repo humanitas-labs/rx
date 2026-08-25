@@ -7,6 +7,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import type { ConversationView, ListView, SpaceScope, SpaceView } from '@rx/contract';
 
+import { NewConversation } from '@/features/compose/NewConversation';
 import { ContextMenu, type MenuItem } from '@/features/conversations/ContextMenu';
 import { MoveToSpace } from '@/features/conversations/MoveToSpace';
 import { SnoozePicker } from '@/features/conversations/SnoozePicker';
@@ -21,7 +22,7 @@ import {
   type Mode,
 } from '@/keyboard/core';
 
-type OverlayKind = 'none' | 'palette' | 'spaces' | 'snooze' | 'move';
+type OverlayKind = 'none' | 'palette' | 'spaces' | 'snooze' | 'move' | 'compose';
 
 /** How long a search keystroke settles before the source query runs. */
 const SEARCH_DEBOUNCE_MS = 150;
@@ -51,6 +52,7 @@ export function Shell() {
   const searchGeneration = useRef(0);
   const filterRef = useRef<HTMLInputElement>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
+  const sendRef = useRef<(() => void) | null>(null);
 
   const refresh = useCallback(() => setRefreshTick((t) => t + 1), []);
   const query = filterQuery.trim();
@@ -278,6 +280,11 @@ export function Shell() {
             void window.rx.invoke('conversation.openInMessages', { chatGuid: selectedGuid });
           }
           return;
+        case 'composer.send':
+          sendRef.current?.();
+          return;
+        case 'compose.new':
+          return openOverlay('compose');
         default:
           if (id.startsWith('space.number.')) {
             const slot = Number(id.slice('space.number.'.length)) - 2;
@@ -357,8 +364,13 @@ export function Shell() {
         undefined,
         hasSelection ? null : 'no conversation selected',
       ),
-      entry('composer.send', 'Send message', '⌘↩', 'sending arrives with delivery verification'),
-      entry('compose.new', 'New conversation', undefined, 'new conversations arrive in a later step'),
+      entry(
+        'composer.send',
+        'Send message',
+        '⌘↩',
+        hasSelection ? null : 'no conversation selected',
+      ),
+      entry('compose.new', 'New conversation', undefined),
     ];
   }, [selectedGuid, view, spaces, runCommand]);
 
@@ -501,6 +513,7 @@ export function Shell() {
         onFilterFocus={() => setMode('filter')}
         onFilterCommit={() => setMode('navigation')}
         onOpenSpaces={() => openOverlay('spaces')}
+        onCompose={() => openOverlay('compose')}
         spaceLabel={spaceLabel(space, spaces)}
       />
       <Reader
@@ -519,6 +532,8 @@ export function Shell() {
               rows?.map((row) => (row.chatGuid === guid ? { ...row, unread: false } : row)) ?? null,
           )
         }
+        onSent={refresh}
+        sendRef={sendRef}
       />
       {menu !== null && (
         <ContextMenu
@@ -560,6 +575,17 @@ export function Shell() {
             const guid = overlayTarget;
             closeOverlay();
             assign(guid, spaceId);
+          }}
+          onClose={closeOverlay}
+        />
+      )}
+      {overlay === 'compose' && (
+        <NewConversation
+          onDelivered={(chatGuid) => {
+            closeOverlay();
+            setView('inbox');
+            setSelectedGuid(chatGuid);
+            refresh();
           }}
           onClose={closeOverlay}
         />

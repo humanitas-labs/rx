@@ -519,6 +519,16 @@ textarea::placeholder {
   padding: 10px 24px 21px 40px;
 }
 
+.composer-status {
+  padding: 4px 16px 0;
+  color: var(--text-dim);
+  font-size: 10.4px;
+}
+
+.composer-status.failed {
+  color: var(--danger);
+}
+
 .composer textarea {
   width: 100%;
   min-height: 32px;
@@ -742,6 +752,60 @@ textarea::placeholder {
   min-width: 320px;
   max-width: 420px;
   padding: 6px;
+}
+
+/* New conversation (step 10) */
+.compose-panel {
+  min-width: 380px;
+  max-width: 460px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.compose-panel input,
+.compose-panel textarea {
+  padding: 7px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  resize: none;
+}
+
+.compose-hint {
+  color: var(--text-dim);
+  font-size: 11px;
+  padding: 0 2px;
+}
+
+.compose-error {
+  color: var(--danger);
+  font-size: 11px;
+  padding: 0 2px;
+}
+
+.compose-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.compose-actions button {
+  padding: 5px 14px;
+  border-radius: 8px;
+  background: var(--raised);
+  border: 1px solid var(--hairline);
+  color: var(--text);
+  font-size: 12px;
+}
+
+.compose-actions .compose-send {
+  background: var(--bubble-out);
+  border-color: transparent;
+}
+
+.compose-actions button:disabled {
+  opacity: 0.45;
 }
 
 .overlay-row.custom {

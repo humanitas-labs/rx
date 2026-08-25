@@ -23,6 +23,8 @@ import { pageMessages } from '@/apple-messages/messages';
 import type { DecodedTextCache } from '@/apple-messages/previews';
 import type { MessagesReader } from '@/apple-messages/reader';
 import { searchChatGuids } from '@/apple-messages/search';
+import { DEFAULT_DELIVERY_TIMING, deliver, type DeliveryTiming } from '@/delivery/delivery';
+import { runAutomation, type SendAutomation } from '@/delivery/send';
 import type { CommandHandler } from '@/ipc/registry';
 
 export type CommandHandlers = { [C in CommandName]?: CommandHandler<C> };
@@ -34,6 +36,9 @@ export interface AppServices {
   store: WorkflowStore;
   messagesDbPath: string;
   now?: () => number;
+  /** Overridable so tests can fake Messages automation. */
+  automation?: SendAutomation;
+  deliveryTiming?: DeliveryTiming;
 }
 
 /** How many recent source conversations the read models compose over. */
@@ -86,6 +91,27 @@ export function createCommands(services: AppServices): CommandHandlers {
 
     'thread.page': ({ chatGuid, limit, beforeRowId }) =>
       pageMessages(requireReader(), services.decoder, chatGuid, { limit, beforeRowId }),
+
+    'compose.send': async ({ target, text }) => {
+      const outcome = await deliver(
+        {
+          reader: requireReader(),
+          decoder: services.decoder,
+          automation: services.automation ?? runAutomation,
+        },
+        target,
+        text,
+        services.deliveryTiming ?? DEFAULT_DELIVERY_TIMING,
+      );
+      if (outcome.state === 'failed') {
+        return { outcome };
+      }
+      // Only a verified outbound restores archived/snoozed to Inbox
+      // (spec §4.4); a failed send leaves workflow state untouched.
+      const { chatGuid, messageGuid, rowId } = outcome.verified;
+      services.store.verifyOutbound(chatGuid, { guid: messageGuid, rowId }, now());
+      return { outcome: { state: 'verified' as const, chatGuid, messageGuid } };
+    },
 
     'workflow.archive': ({ chatGuid }) => {
       const refs = latestRefs(requireReader(), chatGuid);
