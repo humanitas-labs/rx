@@ -7,10 +7,21 @@ directories:
   output: release
 files:
   - out/**
+# Close the generic-Electron attack surface: the packaged binary cannot run
+# as a Node interpreter, take NODE_OPTIONS / --inspect injection, or load
+# app code from outside app.asar.
+electronFuses:
+  runAsNode: false
+  enableCookieEncryption: true
+  enableNodeOptionsEnvironmentVariable: false
+  enableNodeCliInspectArguments: false
+  onlyLoadAppFromAsar: true
 mac:
   category: public.app-category.social-networking
-  # Development signing until a Developer ID Application certificate exists
-  # (required before plan step 12).
+  icon: build/icon.icns
+  # Development signing until a Developer ID Application certificate exists.
+  # For distribution: set type: distribution, add the identity, and notarize
+  # (see docs/dev/development.md).
   type: development
   hardenedRuntime: true
   entitlements: build/entitlements.mac.plist
@@ -19,3 +30,15 @@ mac:
     - target: dir
       arch:
         - arm64
+    - target: dmg
+      arch:
+        - arm64
+dmg:
+  # Plain layout: app on the left, /Applications shortcut on the right.
+  contents:
+    - x: 140
+      y: 200
+    - x: 400
+      y: 200
+      type: link
+      path: /Applications

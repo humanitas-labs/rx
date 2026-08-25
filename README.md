@@ -87,21 +87,57 @@ access. Apple-owned databases are opened read-only.
 rx maintains its own seen state in v0. Opening a conversation in rx may not
 clear the unread badge or send a read receipt in Messages.app.
 
+The full local-data contract — what is read, what is stored where, and what
+uninstalling removes — is documented in [docs/privacy.md](docs/privacy.md).
+
+## Install and run
+
+rx currently builds from source. Prerequisites:
+
+- macOS on Apple silicon;
+- [Node.js](https://nodejs.org) 22 or later and [pnpm](https://pnpm.io);
+- the [Rust toolchain](https://rustup.rs) with the `wasm32-unknown-unknown`
+  target (for the message-body decoder).
+
+```sh
+git clone https://github.com/humanitas-labs/rx.git
+cd rx
+pnpm install
+pnpm --filter @rx/apple-body-decoder build:wasm
+pnpm --filter rx-desktop package
+open apps/desktop/release/mac-arm64/rx.app
+```
+
+The build also produces `apps/desktop/release/rx-0.x.y-arm64.dmg` for
+installing into `/Applications`.
+
+On first launch rx walks through its permissions:
+
+1. **Full Disk Access** — required to read the Messages database. rx shows a
+   button that opens the right System Settings pane; add rx.app there and the
+   inbox appears without a relaunch.
+2. **Automation** — macOS asks the first time you send a message ("rx wants
+   access to control Messages"). Allow it; a denied prompt shows up in rx as
+   a named send failure, and can be reversed under System Settings → Privacy
+   & Security → Automation.
+
+**Unsigned-development limitation:** builds are currently signed with a
+development certificate, not a notarized Developer ID. A build you produced
+yourself runs normally; a copy given to someone else will be blocked by
+Gatekeeper, and permission grants are tied to the certificate, so they may
+need re-granting after rebuilds. Distribution signing is planned.
+
 ## Current status
 
-Platform feasibility work is underway. The current spikes have established
-that:
+v0 is feature-complete and in pre-release dogfooding: onboarding, Inbox /
+Snoozed / Archive with Spaces, search, the conversation reader (attachments,
+tapbacks, replies), verified sending, and live updates with automatic
+resurfacing and snooze wake. Remaining before release: the
+[operational acceptance run](docs/testing/v0-dogfood.md) and distribution
+signing. Release history: [CHANGELOG](CHANGELOG.md).
 
-- modern message bodies can be decoded from Apple’s attributed-body format;
-- source changes can be detected incrementally without repeatedly scanning the
-  entire message database;
-- text messages can be sent through Messages.app and verified against the
-  resulting source record; and
-- attachment sending through the scripting interface silently drops the file
-  on current macOS; it is descoped from v0 (issue #2).
-
-The evidence and open risks are recorded in the
-[platform spike findings](docs/findings/platform-spike.md).
+The evidence and open risks from the platform feasibility phase are recorded
+in the [platform spike findings](docs/findings/platform-spike.md).
 
 ## Planned v0 limitations
 

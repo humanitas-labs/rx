@@ -57,8 +57,26 @@ and your terminal hold separate grants. Grant them in System Settings →
 Privacy & Security when prompted.
 
 Signing uses the local Apple Development certificate (`type: development` in
-`apps/desktop/electron-builder.yml`). Distribution (plan step 12) requires a
-Developer ID Application certificate, which does not exist yet.
+`apps/desktop/electron-builder.yml`). Electron fuses are flipped at package
+time (no `runAsNode`, no `NODE_OPTIONS`/`--inspect` injection, asar-only code
+loading).
+
+### Distribution signing (pending a Developer ID certificate)
+
+When a Developer ID Application certificate exists, in
+`apps/desktop/electron-builder.yml`:
+
+1. set `mac.type: distribution` (electron-builder picks up the Developer ID
+   identity from the keychain, or set `mac.identity` explicitly);
+2. add notarization: `mac.notarize: true` with
+   `APPLE_ID` / `APPLE_APP_SPECIFIC_PASSWORD` / `APPLE_TEAM_ID` in the
+   environment (or an App Store Connect API key);
+3. `pnpm package` then produces a notarized DMG in `apps/desktop/release/`
+   that Gatekeeper accepts on other Macs.
+
+Until then, builds run only on the machine that produced them, and TCC
+grants may need re-granting after rebuilds (grants follow the signing
+identity).
 
 ## Fixtures
 
