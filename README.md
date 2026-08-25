@@ -136,9 +136,6 @@ resurfacing and snooze wake. Remaining before release: the
 [operational acceptance run](docs/testing/v0-dogfood.md) and distribution
 signing. Release history: [CHANGELOG](CHANGELOG.md).
 
-The evidence and open risks from the platform feasibility phase are recorded
-in the [platform spike findings](docs/findings/platform-spike.md).
-
 ## Planned v0 limitations
 
 - macOS only;
@@ -159,10 +156,6 @@ IPC contract, the pure domain core, the Rust→WASM message-body decoder, and
 the Contacts bridge. See the
 [development guide](docs/dev/development.md) for toolchain, commands, and the
 permission model.
-
-Reproducible platform experiments live under
-[`spikes/apple-platform/`](spikes/apple-platform/). They must not print or
-commit message content, contact handles, or chat identifiers.
 
 The full implementation sequence is documented in the
 [v0 implementation plan](.plan/v0.md). Known issues are tracked in the

@@ -3,7 +3,6 @@ out/
 release/
 target/
 node_modules/
-spikes/
 pnpm-lock.yaml
 LICENSE
 *.md

@@ -4,14 +4,7 @@ import prettier from 'eslint-config-prettier';
 
 export default tseslint.config(
   {
-    ignores: [
-      '**/dist/**',
-      '**/out/**',
-      '**/release/**',
-      '**/target/**',
-      '**/node_modules/**',
-      'spikes/**',
-    ],
+    ignores: ['**/dist/**', '**/out/**', '**/release/**', '**/target/**', '**/node_modules/**'],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
